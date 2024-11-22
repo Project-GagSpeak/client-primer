@@ -5,11 +5,13 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiGagSetup;
@@ -23,11 +25,12 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     private readonly PlayerCharacterData _playerManager;
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
         ActiveGagsPanel activeGags, LockPickerSim lockPickSim, GagStoragePanel gagStorage, 
         PlayerCharacterData playerManager, CosmeticService cosmetics,
-        UiSharedService uiShared) : base(logger, mediator, "Gag Setup UI")
+        UiSharedService uiShared, TutorialService guides) : base(logger, mediator, "Gag Setup UI")
     {
         _playerManager = playerManager;
         _activeGags = activeGags;
@@ -35,6 +38,9 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         _gagStorage = gagStorage;
         _cosmetics = cosmetics;
         _uiShared = uiShared;
+        _guides = guides;
+
+        _tabMenu = new GagSetupTabMenu(_uiShared);
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -54,16 +60,60 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                     ImGui.Text("Migrate Old GagStorage Files");
                     ImGui.EndTooltip();
                 }
+            },
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.QuestionCircle,
+                Click = (msg) =>
+                {
+                    if(_tabMenu.SelectedTab == GagSetupTabs.Tabs.ActiveGags)
+                    {
+                        if(_guides.IsTutorialActive(TutorialType.Gags))
+                        {
+                            _guides.SkipTutorial(TutorialType.Gags);
+                            _logger.LogInformation("Skipping Gags Tutorial");
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(TutorialType.Gags);
+                            _logger.LogInformation("Starting Gags Tutorial");
+                        }
+                    }
+                    else if(_tabMenu.SelectedTab == GagSetupTabs.Tabs.GagStorage)
+                    {
+                        if(_guides.IsTutorialActive(TutorialType.GagStorage))
+                        {
+                            _guides.SkipTutorial(TutorialType.GagStorage);
+                            _logger.LogInformation("Skipping GagStorage Tutorial");
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(TutorialType.GagStorage);
+                            _logger.LogInformation("Starting GagStorage Tutorial");
+                        }
+                    }
+                },
+                IconOffset = new(2, 1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    var text = _tabMenu.SelectedTab switch
+                    {
+                        GagSetupTabs.Tabs.ActiveGags => "Start/Stop Gags Tutorial",
+                        GagSetupTabs.Tabs.GagStorage => "Start/Stop GagStorage Tutorial",
+                        _ => "No Tutorial Available"
+                    };
+                    ImGui.Text(text);
+                    ImGui.EndTooltip();
+                }
             }
         };
-
-        _tabMenu = new GagSetupTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(700, 409),
-            MaximumSize = new Vector2(744, 409)
+            MinimumSize = new Vector2(700, 415),
+            MaximumSize = new Vector2(744, 415)
         };
         RespectCloseHotkey = false;
     }
@@ -93,6 +143,8 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     {
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
+        var winPos = ImGui.GetWindowPos();
+        var winSize = ImGui.GetWindowSize();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var topLeftSideHeight = region.Y;
 
@@ -147,13 +199,13 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                     switch (_tabMenu.SelectedTab)
                     {
                         case GagSetupTabs.Tabs.ActiveGags: // shows the interface for inspecting or applying your own gags.
-                            _activeGags.DrawActiveGagsPanel();
+                            _activeGags.DrawActiveGagsPanel(winPos, winSize);
                             break;
                         case GagSetupTabs.Tabs.LockPicker: // shows off the gag storage configuration for the user's gags.
                             _lockPickSim.DrawLockPickingSim();
                             break;
                         case GagSetupTabs.Tabs.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
-                            _gagStorage.DrawGagStoragePanel();
+                            _gagStorage.DrawGagStoragePanel(winPos, winSize);
                             break;
                         default:
                             break;

@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
@@ -26,7 +27,8 @@ public class RemotePersonal : RemoteBase
     private readonly ToyboxRemoteService _remoteService;
     public RemotePersonal(ILogger<RemotePersonal> logger,GagspeakMediator mediator, 
         UiSharedService uiShared, ToyboxRemoteService remoteService, VibratorService vibeService,
-        string windowName = "Personal") : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
+        TutorialService guides, string windowName = "Personal") 
+        : base(logger, mediator, uiShared, vibeService, remoteService, guides, windowName)
     {
         _uiShared = uiShared;
         _vibeService = vibeService;
@@ -54,6 +56,7 @@ public class RemotePersonal : RemoteBase
             {
                 // Dummy bar.
             }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.DeviceList, CurrentPos, CurrentSize);
         }
     }
 
@@ -81,13 +84,21 @@ public class RemotePersonal : RemoteBase
             var InitPos = ImGui.GetCursorPosY();
             if (RemoteOnline)
             {
+                ImGui.AlignTextToFramePadding();
                 ImGuiUtil.Center($"{DurationStopwatch.Elapsed.ToString(@"mm\:ss")}");
             }
+            else
+            {
+                ImGui.AlignTextToFramePadding();
+                ImGuiUtil.Center("00:00");
+            }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.TimerButton, CurrentPos, CurrentSize);
 
             // move our yposition down to the top of the frame height times a .3f scale of the current region
             ImGui.SetCursorPosY(InitPos + CurrentRegion.Y * .1f);
             ImGui.Separator();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
+
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 7f);
 
             // attempt to obtain an image wrap for it
             var spinArrow = _uiShared.GetImageFromDirectoryFile("RequiredImages\\arrowspin.png");
@@ -101,6 +112,7 @@ public class RemotePersonal : RemoteBase
                     ProcessLoopToggle();
                 }
             }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.LoopButton, CurrentPos, CurrentSize);
 
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
@@ -116,6 +128,8 @@ public class RemotePersonal : RemoteBase
                     ProcessFloatToggle();
                 }
             }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.FloatButton, CurrentPos, CurrentSize);
+
 
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
 
@@ -138,6 +152,7 @@ public class RemotePersonal : RemoteBase
                         StopVibrating();
                     }
                 }
+                _guides.OpenTutorial(TutorialType.Remote, StepsRemote.PowerButton, CurrentPos, CurrentSize);
             }
         }
         // pop what we appended

@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
 using GagSpeak.UI.Components;
@@ -45,6 +46,7 @@ public class UiFactory
     private readonly ToyboxRemoteService _remoteService;
     private readonly UiSharedService _uiShared;
     private readonly VibratorService _vibeService;
+    private readonly TutorialService _guides;
 
     // API Hubs
     private readonly MainHub _apiHubMain;
@@ -57,7 +59,8 @@ public class UiFactory
         KinkPlateLight kinkPlateLight, KinkPlateService kinkPlates, MoodlesService moodlesService, 
         OnFrameworkService frameworkUtils, PermissionPresetService presetService, 
         PermActionsComponents permActionHelpers, TextureService textures, ToyboxRemoteService remoteService, 
-        UiSharedService uiShared, VibratorService vibeService, MainHub apiHubMain, ToyboxHub apiHubToybox)
+        UiSharedService uiShared, VibratorService vibeService, TutorialService guides, MainHub apiHubMain,
+        ToyboxHub apiHubToybox)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -79,6 +82,7 @@ public class UiFactory
         _remoteService = remoteService;
         _uiShared = uiShared;
         _vibeService = vibeService;
+        _guides = guides;
         _apiHubMain = apiHubMain;
         _apiHubToybox = apiHubToybox;
     }
@@ -86,7 +90,8 @@ public class UiFactory
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _playerManager, _gagManager, _uiShared, _vibeService, _remoteService, _apiHubToybox, privateRoom);
+            _apiHubToybox, _playerManager, _gagManager, _uiShared, _vibeService, _remoteService, 
+            _guides, privateRoom);
     }
 
     public KinkPlateUI CreateStandaloneKinkPlateUi(Pair pair)

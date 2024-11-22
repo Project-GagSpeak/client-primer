@@ -156,13 +156,12 @@ namespace GagSpeak.Localization
         public readonly string Step1Desc = Loc.Localize("HelpRemote_Step1Desc", "When active, interactions from this remote are sent to connected devices.");
 
         public readonly string Step2Title = Loc.Localize("HelpRemote_Step2Title", "The Float Button");
-        public readonly string Step2Desc = Loc.Localize("HelpRemote_Step2Desc", "Togglable via clicking it, or with MIDDLE-CLICK, while in the remote window." 
-            + Environment.NewLine + "While active, the pink dot will not drop to the floor when released, and stay where you left it.");
+        public readonly string Step2Desc = Loc.Localize("HelpRemote_Step2Desc", "While active, the pink dot will not drop to the floor when released, and stay where you left it.");
+        public readonly string Step2DescExtended = Loc.Localize("HelpRemote_Step2DescExtended", "Togglable via clicking it, or with MIDDLE-CLICK, while in the remote window.");
 
         public readonly string Step3Title = Loc.Localize("HelpRemote_Step3Title", "The Loop Button");
-        public readonly string Step3Desc = Loc.Localize("HelpRemote_Step3Desc", "After turning this button on, via clicking or RIGHT-CLICK, it will begin recording " + 
-            "all movements from the moment you click and drag the pink dot, to the moment you release it. " 
-            + Environment.NewLine + "After you release, it will replay those movements in a loop, until you toggle the button off again.");
+        public readonly string Step3Desc = Loc.Localize("HelpRemote_Step3Desc", "Begins recording from the moment you click and drag the pink dot, to the moment you release it, then repeats that data. ");
+        public readonly string Step3DescExtended = Loc.Localize("HelpRemote_Step3DescExtended", "Togglable vis button interaction, or using RIGHT-CLICK, while in the remote window.");
 
         public readonly string Step4Title = Loc.Localize("HelpRemote_Step4Title", "The Timer");
         public readonly string Step4Desc = Loc.Localize("HelpRemote_Step4Desc", "Displays how long your remote has been running for.");
@@ -185,17 +184,18 @@ namespace GagSpeak.Localization
         public readonly string Step1DescExtended = Loc.Localize("HelpGags_Step1DescExtended", "For Example: Glamours on the same slot will take the priority of the gag on the higher layer.");
 
         public readonly string Step2Title = Loc.Localize("HelpGags_Step2Title", "Equipping a Gag");
-        public readonly string Step2Desc = Loc.Localize("HelpGags_Step2Desc", "The Gag Displayed here reflects the currently equipped gag for the corrisponding layer.");
+        public readonly string Step2Desc = Loc.Localize("HelpGags_Step2Desc", "The Gag Displayed here reflects the currently equipped gag for the corrisponding layer.\nEquip one to continue the Tutorial.");
 
         public readonly string Step3Title = Loc.Localize("HelpGags_Step3Title", "Selecting a Padlock");
-        public readonly string Step3Desc = Loc.Localize("HelpGags_Step3Desc", "You can select a padlock to apply from this dropdown. If one is applied on you, it will display here too.");
+        public readonly string Step3Desc = Loc.Localize("HelpGags_Step3Desc", "You can select the lock to apply to your gag here.\nSelect any Padlock to continue.");
 
-        public readonly string Step4Title = Loc.Localize("HelpGags_Step4Title", "What Padlock Types Are There?");
-        public readonly string Step4Desc = Loc.Localize("HelpGags_Step4Desc", "- Normal Padlocks, such as Metal Padlocks" + Environment.NewLine +
-            "- Password Padlocks, which require a password to unlock" + Environment.NewLine +
-            "- Time Padlocks, which unlock after a set time has passed" + Environment.NewLine +
-            "- Owner Padlocks, which can only be locked/unlocked with Kinksters you have granted OwnerLock access to." + Environment.NewLine +
-            "- Devotional Padlocks, which can only be unlocked by the same Kinkster that locked it. Required DevotionalLock access.");
+        public readonly string Step4Title = Loc.Localize("HelpGags_Step4Title", "Brief Info on Padlocks");
+        public readonly string Step4Desc = Loc.Localize("HelpGags_Step4Desc", "Each padlock you select has its own properties:" + Environment.NewLine +
+            "Metal Locks ⇒ Can be locked/unlocked by anyone." + Environment.NewLine +
+            "Password Locks ⇒ Requires password to unlock" + Environment.NewLine +
+            "Timer Locks ⇒ Unlock after a certain time." + Environment.NewLine +
+            "Owner Locks ⇒ Can be only interacted with by Kinksters with OwnerLock perms." + Environment.NewLine +
+            "Devotional Locks ⇒ Can be only interacted with by the Locker. (DevotionalLock access required)");
 
         public readonly string Step5Title = Loc.Localize("HelpGags_Step5Title", "Locking the Selected Padlock");
         public readonly string Step5Desc = Loc.Localize("HelpGags_Step5Desc", "Once you have chosen a padlock and filled out nessisary fields, this will complete the locking process.");
@@ -232,7 +232,7 @@ namespace GagSpeak.Localization
     public class HelpRestraints
     {
         public readonly string Step1Title = Loc.Localize("HelpRestraints_Step1Title", "Adding a New Restraint Set");
-        public readonly string Step1Desc = Loc.Localize("HelpRestraints_Step1Desc", "Select this button to begin creating a new Restraint Set!");
+        public readonly string Step1Desc = Loc.Localize("HelpRestraints_Step1Desc", "Select this button to begin creating a new Restraint Set!\n(The Tutorial will do this for you)");
 
         public readonly string Step2Title = Loc.Localize("HelpRestraints_Step2Title", "The Info Tab");
         public readonly string Step2Desc = Loc.Localize("HelpRestraints_Step2Desc", "Space to insert the Name of the Restraint and a short description for it!");
@@ -249,7 +249,7 @@ namespace GagSpeak.Localization
         public readonly string Step6Title = Loc.Localize("HelpRestraints_Step6Title", "Importing Current Gear");
         public readonly string Step6Desc = Loc.Localize("HelpRestraints_Step6Desc", "Takes your current Appearance from Glamourer, and applies it here.");
 
-        public readonly string Step7Title = Loc.Localize("HelpRestraints_Step7Title", "Importing Current Customizations");
+        public readonly string Step7Title = Loc.Localize("HelpRestraints_Step7Title", "Importing Customizations");
         public readonly string Step7Desc = Loc.Localize("HelpRestraints_Step7Desc", "Takes your characters current customization appearance, and store it as part of the set.");
 
         public readonly string Step8Title = Loc.Localize("HelpRestraints_Step8Title", "Customizations: Applying");

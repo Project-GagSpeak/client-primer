@@ -26,6 +26,9 @@ public class GagSpeakLoc : IDisposable, IHostedService
         _tutorialService = tutorialService;
         _pi = pi;
 
+        // load tutorial strings.
+        _tutorialService.InitializeTutorialStrings();
+
         // subscribe to any localization changes.
         _pi.LanguageChanged += LoadLocalization;
     }

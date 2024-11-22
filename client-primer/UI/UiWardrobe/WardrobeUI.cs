@@ -4,10 +4,12 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiWardrobe;
@@ -22,11 +24,12 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private readonly MoodlesManager _moodlesPanel;
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
     public WardrobeUI(ILogger<WardrobeUI> logger, GagspeakMediator mediator, 
         WardrobeHandler handler, RestraintSetManager restraintOverview, 
         StruggleSim struggleSim, CursedDungeonLoot cursedLoot,
         MoodlesManager moodlesManager, CosmeticService cosmetics,
-        UiSharedService uiSharedService) : base(logger, mediator, "Wardrobe UI")
+        UiSharedService uiSharedService, TutorialService guides) : base(logger, mediator, "Wardrobe UI")
     {
         _handler = handler;
         _overviewPanel = restraintOverview;
@@ -35,6 +38,9 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         _moodlesPanel = moodlesManager;
         _cosmetics = cosmetics;
         _uiShared = uiSharedService;
+        _guides = guides;
+
+        _tabMenu = new WardrobeTabMenu(_uiShared);
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -54,10 +60,54 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     ImGui.Text("Migrate Old Restraint Sets");
                     ImGui.EndTooltip();
                 }
+            },
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.QuestionCircle,
+                Click = (msg) =>
+                {
+                    if(_tabMenu.SelectedTab == WardrobeTabs.Tabs.ManageSets)
+                    {
+                        if(_guides.IsTutorialActive(TutorialType.Restraints))
+                        {
+                            _guides.SkipTutorial(TutorialType.Restraints);
+                            _logger.LogInformation("Skipping Restraints Tutorial");
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(TutorialType.Restraints);
+                            _logger.LogInformation("Starting Restraints Tutorial");
+                        }
+                    }
+                    else if(_tabMenu.SelectedTab == WardrobeTabs.Tabs.CursedLoot)
+                    {
+                        if(_guides.IsTutorialActive(TutorialType.CursedLoot))
+                        {
+                            _guides.SkipTutorial(TutorialType.CursedLoot);
+                            _logger.LogInformation("Skipping CursedLoot Tutorial");
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(TutorialType.CursedLoot);
+                            _logger.LogInformation("Starting CursedLoot Tutorial");
+                        }
+                    }
+                },
+                IconOffset = new(2, 1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    var text = _tabMenu.SelectedTab switch
+                    {
+                        WardrobeTabs.Tabs.ManageSets => "Start/Stop Restraints Tutorial",
+                        WardrobeTabs.Tabs.CursedLoot => "Start/Stop Cursed Loot Tutorial",
+                        _ => "No Tutorial Available"
+                    };
+                    ImGui.Text(text);
+                    ImGui.EndTooltip();
+                }
             }
         };
-
-        _tabMenu = new WardrobeTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
@@ -94,6 +144,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         //_logger.LogInformation(ImGui.GetWindowSize().ToString()); // <-- USE FOR DEBUGGING ONLY.
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
+        var winPos = ImGui.GetWindowPos();
+        var winSize = ImGui.GetWindowSize();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var topLeftSideHeight = region.Y;
         var cellPadding = ImGui.GetStyle().CellPadding;
@@ -147,13 +199,13 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     switch (_tabMenu.SelectedTab)
                     {
                         case WardrobeTabs.Tabs.ManageSets:
-                            _overviewPanel.DrawManageSets(cellPadding);
+                            _overviewPanel.DrawManageSets(cellPadding, winPos, winSize);
                             break;
                         case WardrobeTabs.Tabs.StruggleSim:
                             _struggleSimPanel.DrawStruggleSim();
                             break;
                         case WardrobeTabs.Tabs.CursedLoot:
-                            _cursedLootPanel.DrawCursedLootPanel();
+                            _cursedLootPanel.DrawCursedLootPanel(winPos, winSize);
                             break;
                         case WardrobeTabs.Tabs.ManageMoodles:
                             _moodlesPanel.DrawMoodlesManager(cellPadding);

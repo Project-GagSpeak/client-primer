@@ -395,9 +395,23 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
         _gagManager.ApplyGag(layer, gagType);
 
+        // if publishing, publish it.
+        if (publishApply)
+        {
+            Logger.LogInformation("WE ARE PUBLISHING");
+            _gagManager.PublishGagApplied(layer);
+        }
+
+        // Send Achievement Event
+        if (triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied);
+
         // If the Gag is not Enabled, or our auto equip is disabled, dont do anything else and return.
         if (!_clientConfigs.IsGagEnabled(gagType) || !_playerData.GlobalPerms!.ItemAutoEquip)
+        {
+            Logger.LogDebug("Either this gag was not set to be enabled, or item auto equip is off, skipping appearnace altaring changes!", LoggerType.GagHandling);
             return;
+        }
 
         await RecalcAndReload(false);
 
@@ -405,14 +419,6 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         var drawData = _clientConfigs.GetDrawData(gagType);
         if (drawData.CustomizeGuid != Guid.Empty)
             _ipcManager.CustomizePlus.EnableProfile(drawData.CustomizeGuid);
-
-        // if publishing, publish it.
-        if (publishApply)
-            _gagManager.PublishGagApplied(layer);
-
-        // Send Achievement Event
-        if (triggerAchievement)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied);
     }
 
     /// <summary>

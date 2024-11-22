@@ -100,6 +100,7 @@ public class Tutorial
     private void DrawPopup(Vector2 pos, Step step, int nextStepVal, Action? onNext = null)
     {
         using var style = DefaultStyle()
+            .Push(ImGuiStyleVar.WindowPadding, Vector2.One*8 * ImGuiHelpers.GlobalScale)
             .Push(ImGuiStyleVar.PopupBorderSize, 2 * ImGuiHelpers.GlobalScale)
             .Push(ImGuiStyleVar.PopupRounding, 5 * ImGuiHelpers.GlobalScale);
         using var color = DefaultColors()
@@ -179,7 +180,7 @@ public class Tutorial
 
         var buttonPos = windowPos + new Vector2(windowSize.X - _buttonCloseSize.X - ImGui.GetStyle().ItemInnerSpacing.X, ImGui.GetStyle().ItemSpacing.Y);
         if (CloseButton(buttonPos))
-            nextValue = EndStep;
+            nextValue = -1;
 
         if (nextValue != null)
         {
@@ -198,7 +199,7 @@ public class Tutorial
                 return i;
         }
 
-        return EndStep;
+        return -1;
     }
 
     // Obtain the current ID if it is enabled, otherwise the first enabled ID after it.
@@ -213,7 +214,7 @@ public class Tutorial
                 return i;
         }
 
-        return EndStep;
+        return -1;
     }
 
     // Make sure you have as many tutorials registered as you intend to.

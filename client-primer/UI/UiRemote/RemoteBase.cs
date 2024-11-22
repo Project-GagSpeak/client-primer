@@ -1,3 +1,4 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -5,10 +6,12 @@ using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
 using ImPlotNET;
+using Lumina.Excel.Sheets;
 using OtterGui;
 using System.Numerics;
 using System.Timers;
@@ -26,30 +29,63 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly VibratorService _vibeService;
     private readonly ToyboxRemoteService _remoteService;
+    protected readonly TutorialService _guides;
 
-    public RemoteBase(ILogger logger,
-        GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, VibratorService vibeService,
+    public RemoteBase(ILogger logger, GagspeakMediator mediator, 
+        UiSharedService uiShared, VibratorService vibeService, 
+        ToyboxRemoteService remoteService, TutorialService guides, 
         string windowName): base(logger, mediator, windowName + " Remote")
     {
-        // grab the shared services
         _uiShared = uiShared;
         _vibeService = vibeService;
         _remoteService = remoteService;
+        _guides = guides;
+
         AllowPinning = false;
         AllowClickthrough = false;
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize;
 
-        // define initial size of window and to not respect the close hotkey.
         SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(WindowWidthMin, 430),
             MaximumSize = new Vector2(WindowWidthMin, 430)
         };
+
         RespectCloseHotkey = false;
 
+        if(windowName == "Personal")
+        {
+            TitleBarButtons = new()
+            {
+                new TitleBarButton()
+                {
+                    Icon = FontAwesomeIcon.QuestionCircle,
+                    Click = (msg) =>
+                    {
+                        if (_guides.IsTutorialActive(TutorialType.Remote))
+                        {
+                            _guides.SkipTutorial(TutorialType.Remote);
+                            _logger.LogInformation("Skipping Remote Tutorial");
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(TutorialType.Remote);
+                            _logger.LogInformation("Starting Remote Tutorial");
+                        }
+                    },
+                    IconOffset = new(2, 1),
+                    ShowTooltip = () =>
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text("Start/Stop Remote Tutorial");
+                        ImGui.EndTooltip();
+                    }
+                }
+            };
+        }
+
         // label the window with the identifier name
-        WindowBaseName = $"Lovense Remote UI " + windowName;
+        WindowBaseName = $"GagSpeak Remote UI " + windowName;
 
         // create a new timer stopwatch, unique to this base class instance.
         DurationStopwatch = new Stopwatch();
@@ -66,6 +102,8 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     protected static float WindowWidthMax = 550f;
     public bool IsExpanded { get; private set; } = false;
 
+    protected Vector2 CurrentPos = Vector2.Zero;
+    protected Vector2 CurrentSize = Vector2.Zero;
 
     // Stores the duration of the recording. Must be distinct for all (base class)
     protected Stopwatch DurationStopwatch;
@@ -165,6 +203,8 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     {
         //_logger.LogInformation(ImGui.GetWindowSize().ToString());
         var isFocused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows);
+        CurrentPos = ImGui.GetWindowPos();
+        CurrentSize = ImGui.GetWindowSize();
         using (var child = ImRaii.Child($"##RemoteUIChild{WindowBaseName}", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration))
         {
 
@@ -261,6 +301,8 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
                 }
                 ImPlot.EndPlot();
             }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.OutputDisplay, CurrentPos, CurrentSize);
+
 
             // clear the styles
             ImPlot.PopStyleColor(2);
@@ -321,7 +363,6 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
 
     private void DrawCircleButtonGraph(ref float width, ref float yPos)
     {
-        using var disabled = ImRaii.Disabled(!RemoteOnline);
         using var color = ImRaii.PushColor(ImPlotCol.PlotBg, _remoteService.LovenseDragButtonBG);
         // Draw a thin line with a timer to show the current position of the circle
         width = ImGui.GetContentRegionAvail().X;
@@ -343,7 +384,11 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
             ImPlot.SetupAxisTicks(ImAxis.Y1, ref Positions[0], 11, Labels);
 
             // setup the drag point circle
-            ImPlot.DragPoint(0, ref CirclePosition[0], ref CirclePosition[1], _remoteService.LushPinkButton, 20, ImPlotDragToolFlags.NoCursors);
+            using (ImRaii.Disabled(!RemoteOnline))
+            {
+                ImPlot.DragPoint(0, ref CirclePosition[0], ref CirclePosition[1], _remoteService.LushPinkButton, 20, ImPlotDragToolFlags.NoCursors);
+            }
+            _guides.OpenTutorial(TutorialType.Remote, StepsRemote.ControllableCircle, CurrentPos, CurrentSize);
 
             // if the mouse button is released, while we are looping and dragging turn dragging off
             if (IsDragging && ImGui.IsMouseReleased(ImGuiMouseButton.Left))

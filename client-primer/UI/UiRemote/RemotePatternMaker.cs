@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
@@ -27,9 +28,9 @@ public class RemotePatternMaker : RemoteBase
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
     public RemotePatternMaker(ILogger<RemotePatternMaker> logger, GagspeakMediator mediator,
-        CosmeticService cosmetics, UiSharedService uiShared, ToyboxRemoteService remoteService, 
-        VibratorService vibeService, string windowName = "Pattern Creator") 
-        : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
+        CosmeticService cosmetics, UiSharedService uiShared, VibratorService vibeService,
+        ToyboxRemoteService remoteService, TutorialService guides, string windowName = "Pattern Creator") 
+        : base(logger, mediator, uiShared, vibeService, remoteService, guides, windowName)
     {
         // grab the shared services
         _cosmetics = cosmetics;

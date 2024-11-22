@@ -166,18 +166,15 @@ public class ClientCallbackService
             if (callbackGagState is NewState.Unlocked)
             {
                 _logger.LogDebug("SelfApplied GAG UNLOCK Verified by Server Callback.", LoggerType.Callbacks);
+                // unlock the padlock.
+                _gagManager.UnlockGag(callbackGagLayer);
+
                 // If the gagType is not none, 
                 if (callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType() is not GagType.None)
                 {
                     // This means the gag is still applied, so we should see if we want to auto remove it.
                     _logger.LogDebug("Gag is still applied. Checking if we should remove it. Padlock: ["+ currentGagSlot.Padlock +"]", LoggerType.Callbacks);
-                    bool shouldAutoRemove = false;
                     if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration && currentGagSlot.Padlock.ToPadlock().IsTimerLock())
-                        shouldAutoRemove = true;
-                    // unlock the padlock.
-                    _gagManager.UnlockGag(callbackGagLayer);
-                    // if we should auto remove, then remove it.
-                    if (shouldAutoRemove)
                         await _appearanceManager.GagRemoved(callbackGagLayer, currentGagSlot.GagType.ToGagType(), isSelfApplied: true);
                 }
             }

@@ -53,9 +53,9 @@ public enum StepsRemote
 
 public enum StepsActiveGags
 {
-    LayersInfo, // Explain purpose of layers.
-    EquippingGags, // Adding Gag
-    SelectingPadlocks, // Where to pick them
+    LayersInfo,
+    EquippingGags,
+    SelectingPadlocks,
     PadlockTypes, // Types of padlocks.
     LockingPadlocks, // Lock password Padlock.
     UnlockingPadlocks, // unlock the padlock.
@@ -74,16 +74,16 @@ public enum StepsGagStorage
 
 public enum StepsRestraints
 {
-    AddingNewRestraint, // where to add set.
-    InfoTab, // purpose
-    ToAppearanceTab, // purpose
-    SettingGear, // where to setup your gear items.
-    Metadata, // The meta toggles.
-    ImportingGear, // how gear import works.
-    ImportingCustomizations, // how to import customizations.
-    ApplyingCustomizations, // how to apply customizations.
-    ClearingCustomizations, // how to clear customizations.
-    ToModsTab, // purpose
+    AddingNewRestraint,
+    InfoTab,
+    ToAppearanceTab,
+    SettingGear,
+    Metadata,
+    ImportingGear,
+    ImportingCustomizations,
+    ApplyingCustomizations,
+    ClearingCustomizations,
+    ToModsTab,
     SelectingMod, // how to select a mod.
     AddingMod, // how to add a mod.
     ModOptions, // options for added mods (dont need to see buttons just highlight area)

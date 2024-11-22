@@ -1,22 +1,11 @@
 namespace GagSpeak.UI.Components;
 
 /// <summary> Tab Menu for the GagSetup UI </summary>
-public class OrdersTabMenu : TabMenuBase
+public class OrdersTabMenu : TabMenuBase<OrdersTabs.Tabs>
 {
-    /// <summary> Defines the type of tab selection to use. </summary>
-    protected override Type TabSelectionType => typeof(OrdersTabs.Tabs);
-
     public OrdersTabMenu(UiSharedService uiShared) : base(uiShared) { }
 
-    protected override string GetTabDisplayName(Enum tab)
-    {
-        if (tab is OrdersTabs.Tabs ordersTabs)
-        {
-            return OrdersTabs.GetTabName(ordersTabs);
-        }
-
-        return "Unknown"; // Fallback for tabs that don't match the expected type.
-    }
+    protected override string GetTabDisplayName(OrdersTabs.Tabs tab) => OrdersTabs.GetTabName(tab);
 }
 
 public static class OrdersTabs

@@ -1,10 +1,12 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Animation.EasingFunctions;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
@@ -22,19 +24,21 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterData _playerManager; // for grabbing lock data
     private readonly GagManager _gagManager;
     private readonly AppearanceManager _appearanceHandler;
-    private readonly AppearanceService _appearanceChangeService;
+    private readonly AppearanceService _appearanceService;
+    private readonly TutorialService _guides;
 
     public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         GagManager gagManager, PlayerCharacterData playerManager,
-        AppearanceManager handler, AppearanceService appearanceChangeService)
-        : base(logger, mediator)
+        AppearanceManager handler, AppearanceService appearanceService,
+        TutorialService guides) : base(logger, mediator)
     {
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _gagManager = gagManager;
         _appearanceHandler = handler;
-        _appearanceChangeService = appearanceChangeService;
+        _appearanceService = appearanceService;
+        _guides = guides;
     }
     private static readonly string[] Labels = { "Inner Gag", "Central Gag", "Outer Gag" };
 
@@ -48,7 +52,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     private string GetGagPadlockPath(int index) => $"PadlockImages\\{_playerManager.AppearanceData!.GagSlots[index].Padlock.ToPadlock()}.png" ?? $"Padlocks\\None.png";
 
     // Draw the active gags tab
-    public void DrawActiveGagsPanel()
+    public void DrawActiveGagsPanel(Vector2 winPos, Vector2 winSize)
     {
         if (_playerManager.CoreDataNull)
             return;
@@ -66,6 +70,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 Padlocks currentPadlockSelection = gagSlots[i].Padlock.ToPadlock() is Padlocks.None ? GagManager.ActiveSlotPadlocks[i] : gagSlots[i].Padlock.ToPadlock();
 
                 DrawGagSlotHeader(i, bigTextSize);
+                if(i is 0) _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.LayersInfo, winPos, winSize);
                 using (ImRaii.Group())
                 {
                     DrawImage(GetGagTypePath(i));
@@ -76,7 +81,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                     {
                         if (TwoRowLocks.Contains(gagSlots[i].Padlock.ToPadlock()))
                             ImGui.SetCursorPosY(GroupCursorY + ImGui.GetFrameHeight() / 2);
-                        DrawGagLockGroup(i, region, gagSlots, currentlyLocked, currentPadlockSelection);
+                        DrawGagLockGroup(i, region, gagSlots, currentlyLocked, currentPadlockSelection, winPos, winSize);
                     }
                     if (gagSlots[i].Padlock.ToPadlock() is not Padlocks.None && currentlyLocked)
                     {
@@ -120,7 +125,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     }
 
     private Task? _gagTypeChangeTask;
-    private void DrawGagLockGroup(int idx, Vector2 region, GagSlot[] gagSlots, bool currentlyLocked, Padlocks currentPadlockSelection)
+    private void DrawGagLockGroup(int idx, Vector2 region, GagSlot[] gagSlots, bool currentlyLocked, Padlocks currentPadlockSelection, Vector2 winPos, Vector2 winSize)
     {
         bool gagTypeIsNone = gagSlots[idx].GagType.ToGagType() is GagType.None;
         // The Gag Group
@@ -151,6 +156,12 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 }
             });
         }
+        if (idx is 0)
+        {
+            _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.EquippingGags, winPos, winSize);
+            if (gagSlots[0].Padlock.ToPadlock() is Padlocks.None && gagSlots[0].GagType.ToGagType() is not GagType.None)
+                _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.RemovingGags, winPos, winSize);
+        }
 
         // The Lock Group
         using (ImRaii.Disabled(currentlyLocked || gagTypeIsNone))
@@ -158,6 +169,15 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             _gagManager.DrawPadlockCombo(idx, 248 - _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Lock).X,
                 GenericHelpers.NoOwnerPadlockList, (i) => GagManager.ActiveSlotPadlocks[idx] = i);
         }
+        if (idx is 0)
+        {
+            if (gagSlots[0].GagType.ToGagType() is not GagType.None)
+            {
+                _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.SelectingPadlocks, winPos, winSize);
+                _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.PadlockTypes, winPos, winSize);
+            }
+        }
+
         // Scooch over and draw the lock button.
         ImGui.SameLine(0, 2);
         using (ImRaii.Disabled(currentPadlockSelection is Padlocks.None))
@@ -188,6 +208,15 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             UiSharedService.AttachToolTip(currentlyLocked ? "Attempt Unlocking " : "Lock " + "this gag.");
         }
+        // Tutorial Stuff
+        if (idx is 0)
+        {
+            if (GagManager.ActiveSlotPadlocks[idx] is not Padlocks.None)
+                _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.LockingPadlocks, winPos, winSize);
+            if (gagSlots[0].Padlock.ToPadlock() is not Padlocks.None)
+                _guides.OpenTutorial(TutorialType.Gags, StepsActiveGags.UnlockingPadlocks, winPos, winSize);
+        }
+
         // display associated password field for padlock type.
         _gagManager.DisplayPadlockFields(currentPadlockSelection, idx, currentlyLocked);
     }

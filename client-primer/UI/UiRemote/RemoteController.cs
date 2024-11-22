@@ -18,6 +18,7 @@ using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services;
 using OtterGui.Text;
+using GagSpeak.Services.Tutorial;
 
 namespace GagSpeak.UI.UiRemote;
 
@@ -26,16 +27,17 @@ namespace GagSpeak.UI.UiRemote;
 /// </summary>
 public class RemoteController : RemoteBase
 {
+    private readonly ToyboxHub _apiHubToybox;
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
     private readonly UiSharedService _uiShared;
-    private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
+    private readonly VibratorService _vibeService;
     private readonly ToyboxRemoteService _remoteService;
-    private readonly ToyboxHub _apiHubToybox;
     public RemoteController(ILogger<RemoteController> logger, GagspeakMediator mediator, 
-        PlayerCharacterData playerManager, GagManager gagManager, UiSharedService uiShared,
-        VibratorService vibeService, ToyboxRemoteService remoteService, ToyboxHub apiHubToybox, 
-        PrivateRoom privateRoom) : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
+        ToyboxHub apiHubToybox, PlayerCharacterData playerManager, GagManager gagManager, 
+        UiSharedService uiShared, VibratorService vibeService, ToyboxRemoteService remoteService, 
+        TutorialService guides, PrivateRoom privateRoom) 
+        : base(logger, mediator, uiShared, vibeService, remoteService, guides, privateRoom.RoomName)
     {
         // grab the shared services
         _playerManager = playerManager;

@@ -121,7 +121,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Changelog");
+                    ImGui.Text("Start/Stop MainUI Tutorial");
                     ImGui.EndTooltip();
                 }
             }

@@ -87,7 +87,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
 
     private CursedItem? NewItem = null; // is null when not creating?
 
-    public void DrawCursedLootPanel()
+    public void DrawCursedLootPanel(Vector2 winPos, Vector2 winSize)
     {
         // If the expended item index is not -1, set creator expanded to false.
         if (ExpandedItemIndex != -1)

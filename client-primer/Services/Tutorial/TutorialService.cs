@@ -20,7 +20,6 @@ public class TutorialService
     public TutorialService(UiSharedService uiShared)
     {
         _uiShared = uiShared;
-        InitializeTutorialStrings();
     }
 
     public bool IsTutorialActive(TutorialType type) => _tutorials[type].CurrentStep is not -1;
@@ -50,6 +49,26 @@ public class TutorialService
         if (_tutorials.TryGetValue(guide, out var tutorial))
             tutorial.CurrentStep = -1;
     }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void JumpToStep<TEnum>(TutorialType guide, TEnum step)
+    {
+        // reset the step to -1, stopping the tutorial.
+        if (_tutorials.TryGetValue(guide, out var tutorial))
+            tutorial.CurrentStep = Convert.ToInt32(step);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CurrentStep(TutorialType guide)
+    {
+        if (_tutorials.TryGetValue(guide, out var tutorial))
+            return tutorial.CurrentStep;
+
+        return -1;
+    }
+
+
 
     // Create a mappinng between the tutorialTypes and the associated enum size.
     private static readonly Dictionary<TutorialType, int> _tutorialSizes = new()
@@ -102,13 +121,13 @@ public class TutorialService
         var remoteStr = GSLoc.Tutorials.HelpRemote;
         _tutorials[TutorialType.Remote] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Remote Tutorial",
         }
         .AddStep(remoteStr.Step1Title, remoteStr.Step1Desc, string.Empty)
-        .AddStep(remoteStr.Step2Title, remoteStr.Step2Desc, string.Empty)
-        .AddStep(remoteStr.Step3Title, remoteStr.Step3Desc, string.Empty)
+        .AddStep(remoteStr.Step2Title, remoteStr.Step2Desc, remoteStr.Step2DescExtended)
+        .AddStep(remoteStr.Step3Title, remoteStr.Step3Desc, remoteStr.Step3DescExtended)
         .AddStep(remoteStr.Step4Title, remoteStr.Step4Desc, string.Empty)
         .AddStep(remoteStr.Step5Title, remoteStr.Step5Desc, string.Empty)
         .AddStep(remoteStr.Step6Title, remoteStr.Step6Desc, string.Empty)
@@ -118,7 +137,7 @@ public class TutorialService
         var gagsStr = GSLoc.Tutorials.HelpGags;
         _tutorials[TutorialType.Gags] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Gags Tutorial",
         }
@@ -134,7 +153,7 @@ public class TutorialService
         var gagsStorageStr = GSLoc.Tutorials.HelpGagStorage;
         _tutorials[TutorialType.GagStorage] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Gag Storage Tutorial",
         }
@@ -149,7 +168,7 @@ public class TutorialService
         var restraintsStr = GSLoc.Tutorials.HelpRestraints;
         _tutorials[TutorialType.Restraints] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Restraints Tutorial",
         }
@@ -184,7 +203,7 @@ public class TutorialService
         var cursedLootStr = GSLoc.Tutorials.HelpCursedLoot;
         _tutorials[TutorialType.CursedLoot] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Cursed Loot Tutorial",
         }
@@ -204,7 +223,7 @@ public class TutorialService
         var toyboxStr = GSLoc.Tutorials.HelpToybox;
         _tutorials[TutorialType.Toybox] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Toybox Tutorial",
         }
@@ -219,7 +238,7 @@ public class TutorialService
         var patternsStr = GSLoc.Tutorials.HelpPatterns;
         _tutorials[TutorialType.Patterns] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Patterns Tutorial",
         }
@@ -250,7 +269,7 @@ public class TutorialService
         var triggersStr = GSLoc.Tutorials.HelpTriggers;
         _tutorials[TutorialType.Triggers] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Triggers Tutorial",
         }
@@ -273,7 +292,7 @@ public class TutorialService
         var alarmsStr = GSLoc.Tutorials.HelpAlarms;
         _tutorials[TutorialType.Alarms] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Alarms Tutorial",
         }
@@ -293,7 +312,7 @@ public class TutorialService
         var achievementsStr = GSLoc.Tutorials.HelpAchievements;
         _tutorials[TutorialType.Achievements] = new Tutorial(_uiShared)
         {
-            BorderColor = ImGui.GetColorU32(ImGuiColors.ParsedGold),
+            BorderColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             HighlightColor = ImGui.GetColorU32(ImGuiColors.TankBlue),
             PopupLabel = "Achievements Tutorial",
         }

@@ -94,6 +94,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     {
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
+        var winPos = ImGui.GetWindowPos();
+        var winSize = ImGui.GetWindowSize();
         var winPadding = ImGui.GetStyle().WindowPadding;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var cellPadding = ImGui.GetStyle().CellPadding;

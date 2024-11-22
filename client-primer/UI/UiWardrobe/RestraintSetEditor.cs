@@ -9,6 +9,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
@@ -33,12 +34,13 @@ public class RestraintSetEditor : IMediatorSubscriber
     private readonly UserPairListHandler _userPairListHandler;
     private readonly WardrobeHandler _handler;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
     public GagspeakMediator Mediator { get; init; }
 
     public RestraintSetEditor(ILogger<RestraintSetEditor> logger, GagspeakMediator mediator,
         ModAssociations relatedMods, MoodlesAssociations relatedMoodles, PairManager pairManager,
         GameItemStainHandler stains, UserPairListHandler userPairList, WardrobeHandler handler,
-        UiSharedService uiShared)
+        UiSharedService uiShared, TutorialService guides)
     {
         _logger = logger;
         Mediator = mediator;
@@ -49,6 +51,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         _userPairListHandler = userPairList;
         _handler = handler;
         _uiShared = uiShared;
+        _guides = guides;
 
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
         // Assign Data to our combos.
@@ -68,43 +71,43 @@ public class RestraintSetEditor : IMediatorSubscriber
     private Vector2 GameIconSize;
     private const float ComboWidth = 200f;
     private float ItemComboLength;
+    public string _setNextTab = string.Empty; // Default selected tab
 
     // Can pass in the set to create, or the set to edit. Either will result in appropriate action.
-    public void DrawRestraintSetEditor(RestraintSet refRestraint, Vector2 cellPadding)
+    public void DrawRestraintSetEditor(RestraintSet refRestraint, Vector2 cellPadding, Vector2 winPos, Vector2 winSize)
     {
-        // create a tab bar for the display
+        ImGui.Text("_setNextTab: " + _setNextTab);
+        // Create a tab bar for the display
         if (ImGui.BeginTabBar("Outfit_Editor"))
         {
-            if (ImGui.BeginTabItem("Info"))
+            // Define tabs and their corresponding actions
+            var tabs = new Dictionary<string, Action>
             {
-                DrawInfo(refRestraint);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Appearance"))
+                { "Info", () => DrawInfo(refRestraint) },
+                { "Appearance", () => DrawAppearance(refRestraint, winPos, winSize) },
+                { "Mods", () => _relatedMods.DrawUnstoredSetTable(refRestraint, cellPadding.Y, winPos, winSize) },
+                { "Moodles", () => DrawMoodlesOptions(refRestraint, cellPadding.Y, winPos, winSize) },
+                { "Sounds", () => DrawSpatialAudioOptions(refRestraint, cellPadding.Y) },
+                { "Hardcore Traits", () => DrawVisibilityAndProperties(refRestraint, winPos, winSize) }
+            };
+
+            // Loop through tabs
+            foreach (var tab in tabs)
             {
-                DrawAppearance(refRestraint);
-                ImGui.EndTabItem();
+                using (var open = ImRaii.TabItem(tab.Key, (tab.Key == _setNextTab) ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+                {
+                    if (tab.Key == _setNextTab) _setNextTab = string.Empty;
+
+                    if (tab.Key == "Info") _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.InfoTab, winPos, winSize, () => refRestraint.Name = "Tutorial Set");
+                    if (tab.Key == "Appearance") _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ToAppearanceTab, winPos, winSize, () => _setNextTab = "Appearance");
+                    if (tab.Key == "Mods") _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ToModsTab, winPos, winSize, () => _setNextTab = "Mods");
+                    if (tab.Key == "Moodles") _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ToMoodlesTab, winPos, winSize, () => _setNextTab = "Moodles");
+                    if (tab.Key == "Hardcore Traits") _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ToSoundsTab, winPos, winSize, () => _setNextTab = "Sounds");
+                
+                    if(open) tab.Value.Invoke();
+                }
             }
-            if (ImGui.BeginTabItem("Mods"))
-            {
-                _relatedMods.DrawUnstoredSetTable(refRestraint, cellPadding.Y);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Moodles"))
-            {
-                DrawMoodlesOptions(refRestraint, cellPadding.Y);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Sounds"))
-            {
-                DrawSpatialAudioOptions(refRestraint, cellPadding.Y);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Hardcore Traits"))
-            {
-                DrawVisibilityAndProperties(refRestraint);
-                ImGui.EndTabItem();
-            }
+
             ImGui.EndTabBar();
         }
     }
@@ -133,7 +136,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         }
     }
 
-    private void DrawAppearance(RestraintSet refRestraintSet)
+    private void DrawAppearance(RestraintSet refRestraintSet, Vector2 winPos, Vector2 winSize)
     {
         ItemComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
@@ -185,6 +188,8 @@ public class RestraintSetEditor : IMediatorSubscriber
                 }
             }
         }
+        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.SettingGear, winPos, winSize);
+
         using (var lowerTable = ImRaii.Table("BonusItemDescription", 2, ImGuiTableFlags.None))
         {
             // setup the columns
@@ -220,23 +225,29 @@ public class RestraintSetEditor : IMediatorSubscriber
             bool forceVisor = refRestraintSet.ForceVisor;
             bool applyCustomizations = refRestraintSet.ApplyCustomizations;
 
-            if (ImGui.Checkbox("Headgear", ref forceHelmet))
+            using(ImRaii.Group())
             {
-                refRestraintSet.ForceHeadgear = forceHelmet;
+                if (ImGui.Checkbox("Headgear", ref forceHelmet))
+                {
+                    refRestraintSet.ForceHeadgear = forceHelmet;
+                }
+                _uiShared.DrawHelpText("Will force your headgear to become visible when the set is applied. (Via Glamourer State)");
+                ImGui.SameLine();
+                if (ImGui.Checkbox("Visor", ref forceVisor))
+                {
+                    refRestraintSet.ForceVisor = forceVisor;
+                }
+                _uiShared.DrawHelpText("Will force your visor to become visible when the set is applied. (Via Glamourer State)");
             }
-            _uiShared.DrawHelpText("Will force your headgear to become visible when the set is applied. (Via Glamourer State)");
-            ImGui.SameLine();
-            if (ImGui.Checkbox("Visor", ref forceVisor))
-            {
-                refRestraintSet.ForceVisor = forceVisor;
-            }
-            _uiShared.DrawHelpText("Will force your visor to become visible when the set is applied. (Via Glamourer State)");
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.Metadata, winPos, winSize);
             
             if(ImGui.Checkbox("Apply Customize", ref applyCustomizations))
             {
                 refRestraintSet.ApplyCustomizations = applyCustomizations;
             }
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ApplyingCustomizations, winPos, winSize);
             _uiShared.DrawHelpText("Will apply any stored Customizations from import.");
+
 
             ImGui.SameLine();
 
@@ -253,10 +264,11 @@ public class RestraintSetEditor : IMediatorSubscriber
                 _logger.LogTrace("Customizations Cleared.", LoggerType.Restraints);
             }
             UiSharedService.AttachToolTip("Clears any stored Customizations for this set.");
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ClearingCustomizations, winPos, winSize);
         }
     }
 
-    private void DrawMoodlesOptions(RestraintSet refRestraintSet, float cellPaddingY)
+    private void DrawMoodlesOptions(RestraintSet refRestraintSet, float cellPaddingY, Vector2 winPos, Vector2 winSize)
     {
         if (LastCreatedCharacterData == null)
         {
@@ -333,7 +345,7 @@ public class RestraintSetEditor : IMediatorSubscriber
 
     public enum StimulationDegree { No, Light, Mild, Heavy }
 
-    private void DrawVisibilityAndProperties(RestraintSet refRestraintSet)
+    private void DrawVisibilityAndProperties(RestraintSet refRestraintSet, Vector2 winPos, Vector2 winSize)
     {
         var region = ImGui.GetContentRegionAvail();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;

@@ -7,10 +7,12 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using OtterGui.Classes;
 using OtterGui.Text;
 using Penumbra.GameData.Enums;
@@ -26,12 +28,11 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly SetPreviewComponent _setPreview;
     private readonly WardrobeHandler _handler;
     private readonly GagManager _gagManager;
-
-    public RestraintSetManager(ILogger<RestraintSetManager> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor,
-        SetPreviewComponent setPreview, WardrobeHandler handler,
-        GagManager padlockHandler) : base(logger, mediator)
+    private readonly TutorialService _guides;
+    public RestraintSetManager(ILogger<RestraintSetManager> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService, IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor,
+        SetPreviewComponent setPreview, WardrobeHandler handler, GagManager padlockHandler, 
+        TutorialService guides) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _ipcGlamourer = ipcGlamourer;
@@ -39,6 +40,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         _handler = handler;
         _gagManager = padlockHandler;
         _setPreview = setPreview;
+        _guides = guides;
 
         CreatedRestraintSet = new RestraintSet();
 
@@ -75,37 +77,37 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void DrawManageSets(Vector2 cellPadding)
+    public void DrawManageSets(Vector2 cellPadding, Vector2 winPos, Vector2 winSize)
     {
         // if we are creating a pattern
         if (CreatingRestraintSet)
         {
-            DrawRestraintSetCreatingHeader();
+            DrawRestraintSetCreatingHeader(winPos, winSize);
             ImGui.Separator();
-            _editor.DrawRestraintSetEditor(CreatedRestraintSet, cellPadding);
+            _editor.DrawRestraintSetEditor(CreatedRestraintSet, cellPadding, winPos, winSize);
             return; // perform early returns so we dont access other methods
         }
 
         // if we are simply viewing the main page       
         if (_handler.ClonedSetForEdit is null)
         {
-            DrawSetListing(cellPadding);
+            DrawSetListing(cellPadding, winPos, winSize);
             return; // perform early returns so we dont access other methods
         }
 
         // if we are editing an restraintSet
         if (_handler.ClonedSetForEdit is not null)
         {
-            DrawRestraintSetEditorHeader();
+            DrawRestraintSetEditorHeader(winPos, winSize);
             ImGui.Separator();
             if (_handler.RestraintSetCount > 0 && _handler.ClonedSetForEdit is not null)
             {
-                _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding);
+                _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding, winPos, winSize);
             }
         }
     }
 
-    private void DrawSetListing(Vector2 cellPadding)
+    private void DrawSetListing(Vector2 cellPadding, Vector2 winPos, Vector2 winSize)
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
@@ -123,7 +125,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
             using (var leftChild = ImRaii.Child($"###SelectableListWardrobe", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                DrawCreateRestraintSetHeader();
+                DrawCreateRestraintSetHeader(winPos, winSize);
                 ImGui.Separator();
                 DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
                 ImGui.Separator();
@@ -165,7 +167,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawCreateRestraintSetHeader()
+    private void DrawCreateRestraintSetHeader(Vector2 winPos, Vector2 winSize)
     {
         // use button wrounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -174,7 +176,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
-            textSize = ImGui.CalcTextSize("New RestraintSet");
+            textSize = ImGui.CalcTextSize("New Restraint Set");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
 
@@ -191,16 +193,23 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 CreatingRestraintSet = true;
             }
             UiSharedService.AttachToolTip("Create a new Restraint Set");
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingNewRestraint, winPos, winSize, () =>
+            {
+                CreatedRestraintSet = new RestraintSet();
+                CreatingRestraintSet = true;
+                _editor._setNextTab = "Info";
+            });
+
             // now next to it we need to draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
-            _uiShared.BigText("New RestraintSet");
+            _uiShared.BigText("New Restraint Set");
 
 
         }
     }
 
-    private void DrawRestraintSetCreatingHeader()
+    private void DrawRestraintSetCreatingHeader(Vector2 winPos, Vector2 winSize)
     {
         // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -250,6 +259,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("EquipmentImported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingGear, winPos, winSize);
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
@@ -261,6 +271,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Customizations Imported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Customization Data from your current appearance.");
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingCustomizations, winPos, winSize);
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
@@ -280,7 +291,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawRestraintSetEditorHeader()
+    private void DrawRestraintSetEditorHeader(Vector2 winPos, Vector2 winSize)
     {
         if(_handler.ClonedSetForEdit is null)
         {

@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Animation.EasingFunctions;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
@@ -11,6 +12,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
@@ -39,16 +41,18 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly MoodlesAssociations _relatedMoodles;
     private readonly GameItemStainHandler _itemStainHandler;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerManager,
         GameItemStainHandler itemStainHandler, MoodlesAssociations relatedMoodles, 
-        UiSharedService uiSharedService) : base(logger, mediator)
+        UiSharedService uiShared, TutorialService guides) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerManager = playerManager;
         _relatedMoodles = relatedMoodles;
         _itemStainHandler = itemStainHandler;
-        _uiShared = uiSharedService;
+        _uiShared = uiShared;
+        _guides = guides;
         GameItemCombo = _itemStainHandler.ObtainItemCombos();
         StainCombo = _itemStainHandler.ObtainStainCombos(ComboWidth);
 
@@ -66,7 +70,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private GagDrawData UnsavedDrawData = null!;
     private GagType SelectedGag = GagType.BallGag;
 
-    private void DrawGagStorageHeader()
+    private void DrawGagStorageHeader(Vector2 winPos, Vector2 winSize)
     {
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
@@ -95,6 +99,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                 SelectedGag = i;
                 UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
             }, SelectedGag);
+            _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.GagStorageSelection, winPos, winSize);
 
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
@@ -106,12 +111,13 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                 _lastSaveTime = DateTime.UtcNow;
             }
             UiSharedService.AttachToolTip("View the list of Moodles Statuses");
+            _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.SavingCustomizations, winPos, winSize);
         }
     }
 
-    public void DrawGagStoragePanel()
+    public void DrawGagStoragePanel(Vector2 winPos, Vector2 winSize)
     {
-        DrawGagStorageHeader();
+        DrawGagStorageHeader(winPos, winSize);
         ImGui.Separator();
         var cellPadding = ImGui.GetStyle().CellPadding;
 
@@ -125,7 +131,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         {
             if (ImGui.BeginTabItem("Gag Glamour"))
             {
-                DrawGagGlamour();
+                DrawGagGlamour(winPos, winSize);
                 ImGui.EndTabItem();
             }
             using (ImRaii.Disabled(!IpcCallerMoodles.APIAvailable))
@@ -136,12 +142,14 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                     ImGui.EndTabItem();
                 }
             }
+            _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.Moodles, winPos, winSize);
 
             if (ImGui.BeginTabItem("Audio"))
             {
                 _uiShared.BigText("Audio WIP");
                 ImGui.EndTabItem();
             }
+            _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.Audio, winPos, winSize);
 
             if (DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(3))
             {
@@ -252,7 +260,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     }
 
-    private void DrawGagGlamour()
+    private void DrawGagGlamour(Vector2 winPos, Vector2 winSize)
     {
         // define icon size and combo length
         IconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y * 2);
@@ -294,62 +302,67 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                 DrawEquip(GameItemCombo, StainCombo, ComboLength);
             }
         }
+        _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.GagGlamours, winPos, winSize);
 
         ImGui.Separator();
         _uiShared.BigText("Adjustments");
 
-        var refEnabled = UnsavedDrawData!.IsEnabled;
-        if (ImGui.Checkbox("Enable " + SelectedGag.GagName(), ref refEnabled))
+        using (ImRaii.Group())
         {
-            UnsavedDrawData.IsEnabled = refEnabled;
-            Logger.LogTrace($"Gag {SelectedGag.GagName()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
-        }
-        _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag." + Environment.NewLine
-            + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
-
-        var refHelmetForced = UnsavedDrawData.ForceHeadgear;
-        if (ImGui.Checkbox($"Force Headgear", ref refHelmetForced))
-        {
-            UnsavedDrawData.ForceHeadgear = refHelmetForced;
-            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceHeadgear ? "force headgear on" : "not force headgear on")} when enabled");
-        }
-        _uiShared.DrawHelpText("When enabled, your [Hat Visible] property in Glamourer will be set to enabled. Making headgear visible.");
-
-        var refVisorForced = UnsavedDrawData.ForceVisor;
-        if (ImGui.Checkbox($"Force Visor", ref refVisorForced))
-        {
-            UnsavedDrawData.ForceVisor = refVisorForced;
-            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceVisor ? "force visor on" : "not force visor on")} when enabled");
-        }
-        _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
-
-        if (IpcCallerCustomize.APIAvailable)
-        {
-            ImGui.Spacing();
-            // collect the list of profiles from our last received IPC data.
-            var profiles = _playerManager.CustomizeProfiles.ToList();
-
-            // Create a placeholder profile for "None"
-            var noneProfile = new CustomizeProfile(Guid.Empty, "Blank Profile");
-
-            // Insert the placeholder profile at the beginning of the list
-            profiles.Insert(0, noneProfile);
-
-            _uiShared.DrawComboSearchable("C+ Profile##GagStorageCP_Profile" + SelectedGag, 150f, profiles, (profile) => profile.ProfileName, true, (i) =>
+            var refEnabled = UnsavedDrawData!.IsEnabled;
+            if (ImGui.Checkbox("Enable " + SelectedGag.GagName(), ref refEnabled))
             {
-                UnsavedDrawData.CustomizeGuid = i.ProfileGuid;
-                Logger.LogTrace($"Gag {SelectedGag.GagName()} will now use the Customize+ Profile {i.ProfileName}");
-            }, profiles.FirstOrDefault(p => p.ProfileGuid == UnsavedDrawData.CustomizeGuid), "No Profiles Selected");
-            _uiShared.DrawHelpText("Select a Customize+ Profile to apply while this Gag is equipped.");
-
-            int priorityRef = (int)UnsavedDrawData.CustomizePriority;
-            ImGui.SetNextItemWidth(150f);
-            if (ImGui.InputInt("C+ Priority##GagStorageCP_Priority" + SelectedGag, ref priorityRef))
-            {
-                UnsavedDrawData.CustomizePriority = (byte)priorityRef;
+                UnsavedDrawData.IsEnabled = refEnabled;
+                Logger.LogTrace($"Gag {SelectedGag.GagName()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
             }
-            _uiShared.DrawHelpText("Set the priority of this profile. Higher numbers will override lower numbers.");
+            _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag." + Environment.NewLine
+                + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
+
+            var refHelmetForced = UnsavedDrawData.ForceHeadgear;
+            if (ImGui.Checkbox($"Force Headgear", ref refHelmetForced))
+            {
+                UnsavedDrawData.ForceHeadgear = refHelmetForced;
+                Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceHeadgear ? "force headgear on" : "not force headgear on")} when enabled");
+            }
+            _uiShared.DrawHelpText("When enabled, your [Hat Visible] property in Glamourer will be set to enabled. Making headgear visible.");
+
+            var refVisorForced = UnsavedDrawData.ForceVisor;
+            if (ImGui.Checkbox($"Force Visor", ref refVisorForced))
+            {
+                UnsavedDrawData.ForceVisor = refVisorForced;
+                Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceVisor ? "force visor on" : "not force visor on")} when enabled");
+            }
+            _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
+
+            if (IpcCallerCustomize.APIAvailable)
+            {
+                ImGui.Spacing();
+                // collect the list of profiles from our last received IPC data.
+                var profiles = _playerManager.CustomizeProfiles.ToList();
+
+                // Create a placeholder profile for "None"
+                var noneProfile = new CustomizeProfile(Guid.Empty, "Blank Profile");
+
+                // Insert the placeholder profile at the beginning of the list
+                profiles.Insert(0, noneProfile);
+
+                _uiShared.DrawComboSearchable("C+ Profile##GagStorageCP_Profile" + SelectedGag, 150f, profiles, (profile) => profile.ProfileName, true, (i) =>
+                {
+                    UnsavedDrawData.CustomizeGuid = i.ProfileGuid;
+                    Logger.LogTrace($"Gag {SelectedGag.GagName()} will now use the Customize+ Profile {i.ProfileName}");
+                }, profiles.FirstOrDefault(p => p.ProfileGuid == UnsavedDrawData.CustomizeGuid), "No Profiles Selected");
+                _uiShared.DrawHelpText("Select a Customize+ Profile to apply while this Gag is equipped.");
+
+                int priorityRef = (int)UnsavedDrawData.CustomizePriority;
+                ImGui.SetNextItemWidth(150f);
+                if (ImGui.InputInt("C+ Priority##GagStorageCP_Priority" + SelectedGag, ref priorityRef))
+                {
+                    UnsavedDrawData.CustomizePriority = (byte)priorityRef;
+                }
+                _uiShared.DrawHelpText("Set the priority of this profile. Higher numbers will override lower numbers.");
+            }
         }
+        _guides.OpenTutorial(TutorialType.GagStorage, StepsGagStorage.Adjustements, winPos, winSize);
     }
 
     public void DrawEquip(GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, float _comboLength)

@@ -426,6 +426,11 @@ public class DebugTab
             ImGuiUtil.DrawTableColumn(appearance.GagSlots[i].Padlock);
         ImGui.TableNextRow();
 
+        ImGuiUtil.DrawTableColumn("Password:");
+        for (int i = 0; i < 3; i++)
+            ImGuiUtil.DrawTableColumn(appearance.GagSlots[i].Password);
+        ImGui.TableNextRow();
+
         ImGuiUtil.DrawTableColumn("Time Remaining:");
         for (int i = 0; i < 3; i++)
         {

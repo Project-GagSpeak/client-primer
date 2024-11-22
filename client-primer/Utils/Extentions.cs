@@ -148,7 +148,7 @@ public static class UtilsExtensions
         func();
         ImGui.SameLine(0, 0);
         CenteredLineWidths[id] = ImGui.GetCursorPosX() - oldCur;
-        ImGui.Dummy(Vector2.Zero);
+        ImGui.NewLine(); // Use NewLine to finalize the line instead of Dummy
     }
 
     /// <summary> encapsulates the puppeteer command within '(' and ')' </summary>

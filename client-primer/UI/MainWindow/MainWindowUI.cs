@@ -27,7 +27,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly GagspeakConfigService _configService;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly MainTabMenu _tabMenu;
+    private readonly MainMenuTabs _tabMenu;
     private readonly MainUiHomepage _homepage;
     private readonly MainUiWhitelist _whitelist;
     private readonly MainUiPatternHub _patternHub;
@@ -49,7 +49,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         UiSharedService uiShared, MainHub apiHubMain, GagspeakConfigService configService,
         PairManager pairManager, ServerConfigurationManager serverConfigs, MainUiHomepage homepage,
         MainUiWhitelist whitelist, MainUiPatternHub patternHub, MainUiChat globalChat,
-        MainUiAccount account, MainTabMenu tabMenu, TutorialService tutorialService,
+        MainUiAccount account, MainMenuTabs tabMenu, TutorialService tutorialService,
         IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiHubMain = apiHubMain;
@@ -232,23 +232,23 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             // display content based on the tab selected
             switch (_tabMenu.TabSelection)
             {
-                case MainTabMenu.SelectedTab.Homepage:
+                case MainMenuTabs.SelectedTab.Homepage:
                     using (ImRaii.PushId("homepageComponent")) _homepage.DrawHomepageSection();
                     break;
-                case MainTabMenu.SelectedTab.Whitelist:
+                case MainMenuTabs.SelectedTab.Whitelist:
                     using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
                     break;
-                case MainTabMenu.SelectedTab.PatternHub:
+                case MainMenuTabs.SelectedTab.PatternHub:
                     using (ImRaii.PushId("patternHubComponent"))
                     {
                         _patternHub.DrawPatternHub();
                         _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHub, ImGui.GetWindowPos(), ImGui.GetWindowSize());
                     }
                     break;
-                case MainTabMenu.SelectedTab.GlobalChat:
+                case MainMenuTabs.SelectedTab.GlobalChat:
                     using (ImRaii.PushId("globalChatComponent")) _globalChat.DrawDiscoverySection();
                     break;
-                case MainTabMenu.SelectedTab.MySettings:
+                case MainMenuTabs.SelectedTab.MySettings:
                     using (ImRaii.PushId("accountSettingsComponent")) _account.DrawAccountSection();
                     break;
             }

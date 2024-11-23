@@ -185,10 +185,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (_handler.MonitorFollowLogic || HandleWeighty)
         {
             // get the byte that sees if the player is walking
-            uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
+            uint isWalking = Marshal.ReadByte((nint)gameControl, 30211);
             // and if they are not, force it.
             if (isWalking is 0)
-                Marshal.WriteByte((nint)gameControl, 24131, 0x1);
+                Marshal.WriteByte((nint)gameControl, 30211, 0x1);
         }
 
         // FORCED STAY LOGIC: Handle Forced Stay
@@ -292,10 +292,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // set mode to run
             unsafe
             {
-                uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
+                uint isWalking = Marshal.ReadByte((nint)gameControl, 30211);
                 // they are walking, so make them run.
                 if (isWalking is not 0)
-                    Marshal.WriteByte((nint)gameControl, 24131, 0x0);
+                    Marshal.WriteByte((nint)gameControl, 30211, 0x0);
             }
             // await for 5 seconds then complete the task.
             await Task.Delay(5000);

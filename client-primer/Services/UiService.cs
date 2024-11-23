@@ -24,12 +24,12 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     private readonly WindowSystem _windowSystem;                                // the window system for our dalamud plugin.
     private readonly UiFactory _uiFactory;                                      // the factory for the UI window creation.
     private readonly PenumbraChangedItemTooltip _penumbraChangedItemTooltip;    // the penumbra changed item tooltip for the plugin.
-    private readonly MainTabMenu _mainWindowTabMenu;                            // the main window tab menu for the plugin.
+    private readonly MainMenuTabs _mainWindowTabMenu;                            // the main window tab menu for the plugin.
 
     public UiService(ILogger<UiService> logger, IUiBuilder uiBuilder,
         GagspeakConfigService gagspeakConfigService, WindowSystem windowSystem,
         IEnumerable<WindowMediatorSubscriberBase> windows, UiFactory uiFactory,
-        MainTabMenu mainWindowTabMenu, GagspeakMediator gagspeakMediator, 
+        MainMenuTabs mainWindowTabMenu, GagspeakMediator gagspeakMediator, 
         FileDialogManager fileDialogManager, 
         PenumbraChangedItemTooltip penumbraChangedItemTooltip) : base(logger, gagspeakMediator)
     {
@@ -71,20 +71,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Remove(window);
                 window.Dispose();
             }
-
-/*            // close any windows that are not the main window.
-            var otherWindows = _createdWindows
-                .Where(p => p is not MainWindowUI)
-                .ToList();
-
-            foreach (var window in otherWindows)
-            {
-                _windowSystem.RemoveWindow(window);
-                _createdWindows.Remove(window);
-                window.Dispose();
-            }*/
-
-
         });
 
         // subscribe to the event message for removing a window
@@ -150,12 +136,12 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 {
 
                     _logger.LogTrace("Forcing main UI to whitelist tab", LoggerType.Permissions);
-                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                    _mainWindowTabMenu.TabSelection = MainMenuTabs.SelectedTab.Whitelist;
                 }
                 else
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Show));
-                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                    _mainWindowTabMenu.TabSelection = MainMenuTabs.SelectedTab.Whitelist;
                 }
             }
 
@@ -228,7 +214,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         });
 
         Mediator.Subscribe<ClosedMainUiMessage>(this, (msg) => CloseExistingPairWindow());
-        Mediator.Subscribe<MainWindowTabChangeMessage>(this, (msg) => { if (msg.NewTab != MainTabMenu.SelectedTab.Whitelist) CloseExistingPairWindow(); });
+        Mediator.Subscribe<MainWindowTabChangeMessage>(this, (msg) => { if (msg.NewTab != MainMenuTabs.SelectedTab.Whitelist) CloseExistingPairWindow(); });
     }
 
     private void CloseExistingPairWindow()

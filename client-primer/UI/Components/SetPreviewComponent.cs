@@ -57,6 +57,13 @@ public class SetPreviewComponent
         ImGui.EndTooltip();
     }
 
+    public void DrawEquipSlotPreview(GagDrawData refData, float totalLength)
+    {
+        refData.GameItem.DrawIcon(_textureHandler.IconData, GameIconSize, refData.Slot);
+        ImGui.SameLine(0, 3);
+        using (var groupDraw = ImRaii.Group()) DrawStain(refData);
+    }
+
     private void DrawRestraintSetDisplay(RestraintSet set)
     {
         // Draw the table.
@@ -113,6 +120,23 @@ public class SetPreviewComponent
             using (var disabled = ImRaii.Disabled(true))
             {
                 StainColorCombos.Draw($"##stain{refSet.DrawData[slot].Slot}",
+                    stain.RgbaColor, stain.Name, found, stain.Gloss, MouseWheelType.None);
+            }
+        }
+    }
+
+    private void DrawStain(GagDrawData refEquipItem)
+    {
+
+        // draw the stain combo for each of the 2 dyes (or just one)
+        foreach (var (stainId, index) in refEquipItem.GameStain.WithIndex())
+        {
+            using var id = ImUtf8.PushId(index);
+            var found = _textureHandler.TryGetStain(stainId, out var stain);
+            // draw the stain combo, but dont make it hoverable
+            using (var disabled = ImRaii.Disabled(true))
+            {
+                StainColorCombos.Draw($"##EquipStainPreview{refEquipItem.Slot}",
                     stain.RgbaColor, stain.Name, found, stain.Gloss, MouseWheelType.None);
             }
         }

@@ -10,6 +10,7 @@ using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
 using ImGuiNET;
 using System.Numerics;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -60,7 +61,7 @@ public class MainUiHomepage
             var module = Modules[i];
             bool isHovered = HoveredItemIndex == i;
 
-            if (HomepageSelectable(module.Label, module.Icon, selectableSize, isHovered))
+            if(HomepageSelectable(module.Label, module.Icon, selectableSize, isHovered))
             {
                 _mediator.Publish(new UiToggleMessage(module.ToggleType));
                 if (module.ToggleType == typeof(RemotePersonal))
@@ -84,8 +85,9 @@ public class MainUiHomepage
             ? ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered))
             : ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
 
-        bool ret = false;
-        using (var child = ImRaii.Child($"##HomepageItem" + label, region, true))
+        // store the screen position before drawing the child.
+        var buttonPos = ImGui.GetCursorScreenPos();
+        using (ImRaii.Child($"##HomepageItem{label}", region, true, ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoScrollbar))
         {
             using var group = ImRaii.Group();
             var height = ImGui.GetContentRegionAvail().Y;
@@ -100,12 +102,12 @@ public class MainUiHomepage
             _uiShared.IconText(icon, color);
 
             ImGui.SetWindowFontScale(1.0f);
-
-            // Use InvisibleButton to detect clicks on the full area
-            ImGui.SetCursorPos(new Vector2(0, 0)); // Reset position for button overlay
-            ret = ImGui.InvisibleButton($"##Button{label}", region - ImGui.GetStyle().ItemInnerSpacing);
-
         }
-        return ret;
+        // draw the button over the child.
+        ImGui.SetCursorScreenPos(buttonPos);
+        if (ImGui.InvisibleButton("##Button-" + label, region))
+            return true;
+
+        return false;
     }
 }

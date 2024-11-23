@@ -379,6 +379,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         .Select(x => x.LootId)
         .ToList();
 
+    internal bool IsGuidInItems(Guid lootId) => CursedLootConfig.CursedLootStorage.CursedItems.Any(x => x.LootId == lootId);
+
     internal void AddCursedItem(CursedItem newItem)
     {
         newItem.Name = EnsureUniqueName(newItem.Name, CursedLootConfig.CursedLootStorage.CursedItems, item => item.Name);
@@ -572,6 +574,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
     public int ActiveAlarmCount => AlarmConfig.AlarmStorage.Alarms.Count(x => x.Enabled);
+    internal bool IsGuidInAlarms(Guid alarmId) => AlarmConfig.AlarmStorage.Alarms.Any(x => x.Identifier == alarmId);
 
     public void AddNewAlarm(Alarm alarm)
     {
@@ -612,7 +615,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public IEnumerable<GagTrigger> ActiveGagStateTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<GagTrigger>().Where(x => x.Enabled);
     public IEnumerable<SocialTrigger> ActiveSocialTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<SocialTrigger>().Where(x => x.Enabled);
 
-    public void AddNewTrigger(Trigger trigger)
+    internal bool IsGuidInTriggers(Guid triggerId) => TriggerConfig.TriggerStorage.Triggers.Any(x => x.TriggerIdentifier == triggerId);
+
+    internal void AddNewTrigger(Trigger trigger)
     {
         trigger.Name = EnsureUniqueName(trigger.Name, TriggerConfig.TriggerStorage.Triggers, trigger => trigger.Name);
         TriggerConfig.TriggerStorage.Triggers.Add(trigger);
@@ -622,7 +627,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
-    public void RemoveTrigger(Trigger triggerToRemove)
+    internal void RemoveTrigger(Trigger triggerToRemove)
     {
         Logger.LogInformation("Trigger Removed: " + triggerToRemove.Name, LoggerType.ToyboxTriggers);
         TriggerConfig.TriggerStorage.Triggers.RemoveAll(x => x.TriggerIdentifier == triggerToRemove.TriggerIdentifier);
@@ -630,7 +635,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
-    public void UpdateTrigger(Trigger trigger, int idx)
+    internal void UpdateTrigger(Trigger trigger, int idx)
     {
         TriggerConfig.TriggerStorage.Triggers[idx] = trigger;
         _triggerConfig.Save();

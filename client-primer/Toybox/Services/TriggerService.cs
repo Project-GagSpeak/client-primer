@@ -246,7 +246,13 @@ public class TriggerService : DisposableMediatorSubscriberBase
                 break;
 
             case TriggerActionKind.Restraint:
-                // if a set is active and already locked, do not execute, and log error.
+                // if the set does not exist in our list of sets, log error and return.
+                if (!_clientConfigs.StoredRestraintSets.Any(x => x.RestraintId == trigger.RestraintTriggerAction.Identifier))
+                {
+                    Logger.LogError("Cannot apply a restraint set that does not exist in the list of restraint sets.");
+                    return;
+                }
+                // if a set is active and already locked, do not execute, and log error.                
                 var activeSet = _clientConfigs.GetActiveSet();
                 if (activeSet is not null && activeSet.Locked)
                 {

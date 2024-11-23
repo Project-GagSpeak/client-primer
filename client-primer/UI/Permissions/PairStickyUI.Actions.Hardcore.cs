@@ -132,11 +132,13 @@ public partial class PairStickyUI
                     if (!actionChild) return;
 
                     var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Force State").X - ImGui.GetStyle().ItemInnerSpacing.X;
-
                     // Have User select the emote they want.
                     var listToShow = disableForceEmoteState ? EmoteMonitor.SitEmoteComboList : EmoteMonitor.EmoteComboList;
+                    if(SelectedEmote is null)
+                        SelectedEmote = listToShow.First();
+
                     _uiShared.DrawComboSearchable("EmoteList", WindowMenuWidth, listToShow, chosen => chosen.ComboEmoteName(), 
-                        false, (chosen) => SelectedEmote = chosen, SelectedEmote ?? listToShow.First());
+                        false, (chosen) => SelectedEmote = chosen, SelectedEmote.Value);
                     // Only allow setting the CPose State if the emote is a sitting one.
                     using (ImRaii.Disabled(!EmoteMonitor.IsAnyPoseWithCyclePose((ushort)(SelectedEmote?.RowId ?? 0))))
                     {

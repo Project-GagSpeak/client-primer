@@ -147,6 +147,9 @@
         <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Services\Migrations\OldGagSpeakMigrations\" />
+    </ItemGroup>
 </Project>
 
 

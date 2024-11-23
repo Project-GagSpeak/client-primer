@@ -11,7 +11,7 @@ namespace GagSpeak.Achievements;
 public class AchievementSaveData
 {
     // easter egg progress.
-    public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>() { { "Orders", false }, { "Gags", false }, { "Wardrobe", false }, { "Puppeteer", false }, { "Toybox", false } };
+    public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>() { { "Orders", false }, { "Gags", false }, { "Wardrobe", false }, { "Puppeteer", false }, { "Toybox", false }, { "Migrations", false } };
     // World Tour Progress. MAPPING: (129 = Limsa Lominsa, 132 = Gridania, 130 = Ul'dah, 418 = Ishgard, 628 = Kugane, 819 = The Crystarium, 820 = Eulmore, 962 = Old Sharlayan, 963 = Raz-At-Han, 1185 = Tuliyollal, 1186 = Solution 9)
     public Dictionary<ushort, bool> VisitedWorldTour { get; set; } = new Dictionary<ushort, bool>() { { 129, false }, { 132, false }, { 130, false }, { 418, false }, { 628, false }, { 819, false }, { 820, false }, { 962, false }, { 963, false }, { 1185, false }, { 1186, false } };
     public Dictionary<int, AchievementBase> Achievements { get; private set; }

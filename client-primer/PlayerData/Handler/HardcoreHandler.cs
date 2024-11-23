@@ -181,10 +181,14 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             ushort currentEmote = _emoteMonitor.CurrentEmoteId(); // our current emote ID.
 
             // if our expected emote is 50, and we are not in any sitting pose, force the sit pose.
-            if (ForcedEmoteState.EmoteID is 50 or 52 && !EmoteMonitor.IsSittingAny(currentEmote))
+            if (ForcedEmoteState.EmoteID is 50 or 52)
             {
-                Logger.LogDebug("Forcing Emote: /SIT [or /GROUNDSIT]. (Current emote was: " + currentEmote + ").");
-                EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
+                // if we are not sitting, force the sit pose.
+                if (!EmoteMonitor.IsSittingAny(currentEmote))
+                {
+                    Logger.LogDebug("Forcing Emote: /SIT [or /GROUNDSIT]. (Current emote was: " + currentEmote + ").");
+                    EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
+                }
 
                 // Wait until we are allowed to use another emote again, after which point, our cycle pose will have registered.
                 await _emoteMonitor.WaitForCondition(() => EmoteMonitor.CanUseEmote(ForcedEmoteState.EmoteID), 5);

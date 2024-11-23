@@ -1,20 +1,9 @@
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
-using FFXIVClientStructs.FFXIV.Common.Math;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Debouncer;
-using GagSpeak.Toybox.Services;
-using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
-using ImGuiNET;
-using ImPlotNET;
 using Penumbra.GameData.Enums;
-using System.Timers;
 
 namespace GagSpeak.UI.Components;
 
@@ -27,11 +16,11 @@ public class AccountInfoExchanger
     public string CurrentUID => MainHub.UID;
 
     // the config directory files for each account
-    private const string AlarmsFile = "alarms.json"; //
-    private const string CursedLootFile = "cursedloot.json"; // 
-    private const string GagStorageFile = "gag-storage.json"; // 
-    private const string TriggersFile = "triggers.json"; //
-    private const string WardrobeFile = "wardrobe.json"; // 
+    private const string GagStorageFile = "gag-storage.json";
+    private const string WardrobeFile = "wardrobe.json";
+    private const string CursedLootFile = "cursedloot.json";
+    private const string TriggersFile = "triggers.json";
+    private const string AlarmsFile = "alarms.json";
 
     public AccountInfoExchanger(string configDirectory)
     {
@@ -52,49 +41,6 @@ public class AccountInfoExchanger
             uids.Add(Path.GetFileName(dir));
         return uids;
     }
-
-    // obtain the alarm list from the specified UID
-    public List<Alarm> GetAlarmsFromUID(string uid)
-    {
-        var ret = new List<Alarm>();
-
-        var path = Path.Combine(ConfigDirectory, uid, AlarmsFile);
-        if (!File.Exists(path)) return ret;
-        var json = File.ReadAllText(path);
-        JObject configJson = JObject.Parse(json);
-        var result = JsonConvert.DeserializeObject<AlarmConfig>(configJson.ToString());
-        return result?.AlarmStorage.Alarms ?? ret;
-    }
-
-
-
-    // obtain the list of cursed items from the specified UID
-    public List<CursedItem> GetCursedItemsFromUID(string uid)
-    {
-        var ret = new List<CursedItem>();
-
-        var path = Path.Combine(ConfigDirectory, uid, CursedLootFile);
-        if (!File.Exists(path)) return ret;
-        var json = File.ReadAllText(path);
-        JObject configJson = JObject.Parse(json);
-
-        var cursedItemsArray = configJson["CursedLootStorage"]!["CursedItems"]?.Value<JArray>();
-        if (cursedItemsArray is null) return ret;
-
-        foreach (var cursedItem in cursedItemsArray)
-        {
-            var readCursedItem = new CursedItem();
-            var cursedItemValue = cursedItem.Value<JObject>();
-            if (cursedItemValue != null)
-            {
-                readCursedItem.Deserialize(cursedItemValue);
-                ret.Add(readCursedItem);
-            }
-        }
-        return ret;
-    }
-
-
 
     // obtain the gagstorage dictionary from the specified UID
     public GagStorage GetGagStorageFromUID(string uid)
@@ -126,6 +72,61 @@ public class AccountInfoExchanger
                 {
                     ret.GagEquipData.Add(gagType, gagDrawData);
                 }
+            }
+        }
+        return ret;
+    }
+
+    // obtain the restraint set list from the specified UID
+    public List<RestraintSet> GetRestraintSetsFromUID(string uid)
+    {
+        var ret = new List<RestraintSet>();
+
+        var path = Path.Combine(ConfigDirectory, uid, WardrobeFile);
+        if (!File.Exists(path)) return ret;
+        var json = File.ReadAllText(path);
+        JObject configJson = JObject.Parse(json);
+
+        var wardrobeStorageToken = configJson["WardrobeStorage"];
+        if (wardrobeStorageToken is null) return ret;
+
+        var restraintSetsArray = wardrobeStorageToken["RestraintSets"]?.Value<JArray>();
+        if (restraintSetsArray is null) return ret;
+
+        foreach (var item in restraintSetsArray)
+        {
+            var restraintSet = new RestraintSet();
+            var ItemValue = item.Value<JObject>();
+            if (ItemValue != null)
+            {
+                restraintSet.Deserialize(ItemValue);
+                ret.Add(restraintSet);
+            }
+        }
+        return ret;
+    }
+
+    // obtain the list of cursed items from the specified UID
+    public List<CursedItem> GetCursedItemsFromUID(string uid)
+    {
+        var ret = new List<CursedItem>();
+
+        var path = Path.Combine(ConfigDirectory, uid, CursedLootFile);
+        if (!File.Exists(path)) return ret;
+        var json = File.ReadAllText(path);
+        JObject configJson = JObject.Parse(json);
+
+        var cursedItemsArray = configJson["CursedLootStorage"]!["CursedItems"]?.Value<JArray>();
+        if (cursedItemsArray is null) return ret;
+
+        foreach (var cursedItem in cursedItemsArray)
+        {
+            var readCursedItem = new CursedItem();
+            var cursedItemValue = cursedItem.Value<JObject>();
+            if (cursedItemValue != null)
+            {
+                readCursedItem.Deserialize(cursedItemValue);
+                ret.Add(readCursedItem);
             }
         }
         return ret;
@@ -182,33 +183,17 @@ public class AccountInfoExchanger
         return ret;
     }
 
-    // obtain the restraint set list from the specified UID
-    public List<RestraintSet> GetRestraintSetsFromUID(string uid)
+    // obtain the alarm list from the specified UID
+    public List<Alarm> GetAlarmsFromUID(string uid)
     {
-        var ret = new List<RestraintSet>();
+        var ret = new List<Alarm>();
 
-        var path = Path.Combine(ConfigDirectory, uid, WardrobeFile);
+        var path = Path.Combine(ConfigDirectory, uid, AlarmsFile);
         if (!File.Exists(path)) return ret;
         var json = File.ReadAllText(path);
         JObject configJson = JObject.Parse(json);
-
-        var wardrobeStorageToken = configJson["WardrobeStorage"];
-        if (wardrobeStorageToken is null) return ret;
-
-        var restraintSetsArray = wardrobeStorageToken["RestraintSets"]?.Value<JArray>();
-        if (restraintSetsArray is null) return ret;
-
-        foreach (var item in restraintSetsArray)
-        {
-            var restraintSet = new RestraintSet();
-            var ItemValue = item.Value<JObject>();
-            if (ItemValue != null)
-            {
-                restraintSet.Deserialize(ItemValue);
-                ret.Add(restraintSet);
-            }
-        }
-        return ret;
+        var result = JsonConvert.DeserializeObject<AlarmConfig>(configJson.ToString());
+        return result?.AlarmStorage.Alarms ?? ret;
     }
 
 

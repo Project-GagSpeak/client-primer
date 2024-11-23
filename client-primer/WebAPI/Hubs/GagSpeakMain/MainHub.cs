@@ -490,29 +490,45 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         // Initialize this while loop with our HubHealthCTS token.
         while (!ct.IsCancellationRequested && GagSpeakHubMain is not null)
         {
-            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
-            Logger.LogTrace("Checking Main Server Client Health State", LoggerType.Health);
-
-            // Refresh and update our token, checking for if we will need to reconnect.
-            bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
-
-            // If we do need to reconnect, it means we have just disconnected from the server.
-            // Thus, this check is no longer valid and we should break out of the health check loop.
-            if (requireReconnect)
+            try
             {
-                Logger.LogDebug("Disconnecting From GagSpeakHub-Main due to updated token", LoggerType.ApiCore);
-                await Reconnect().ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+                Logger.LogTrace("Checking Main Server Client Health State", LoggerType.Health);
+
+                // Refresh and update our token, checking for if we will need to reconnect.
+                bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
+
+                // If we do need to reconnect, it means we have just disconnected from the server.
+                // Thus, this check is no longer valid and we should break out of the health check loop.
+                if (requireReconnect)
+                {
+                    Logger.LogDebug("Disconnecting From GagSpeakHub-Main due to updated token", LoggerType.ApiCore);
+                    await Reconnect().ConfigureAwait(false);
+                    break;
+                }
+
+                // If the Hub is still valid by this point, then send a ping to the gagspeak servers and see if we get a pong back.
+                // (we don't need to know the return value, as long as its a valid call we keep our connection maintained)
+                if (GagSpeakHubMain is not null)
+                {
+                    await CheckMainClientHealth().ConfigureAwait(false);
+                }
+                else
+                {
+                    Logger.LogError("HubConnection became null during health check loop.", LoggerType.Health);
+                    break;
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Task was canceled, exit the loop gracefully
+                Logger.LogInformation("Client health check loop was canceled.", LoggerType.Health);
                 break;
             }
-
-            // If the Hub is still valid by this point, then send a ping to the gagspeak servers and see if we get a pong back.
-            // (we don't need to know the return value, as long as its a valid call we keep our connection maintained)
-            if (GagSpeakHubMain is not null)
-                _ = await CheckMainClientHealth().ConfigureAwait(false);
-            else
+            catch (Exception ex)
             {
-                Logger.LogError("HubConnection became null during health check loop.", LoggerType.Health);
-                break;
+                // Log any other exceptions
+                Logger.LogError($"Exception in ClientHealthCheckLoop: {ex}", LoggerType.Health);
             }
         }
     }

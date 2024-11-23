@@ -199,7 +199,7 @@ public partial class AchievementManager
             unsafe
             {
                 var gameControl = FFXIVClientStructs.FFXIV.Client.Game.Control.Control.Instance();
-                var movementByte = Marshal.ReadByte((nint)gameControl, 24131);
+                var movementByte = Marshal.ReadByte((nint)gameControl, 30211);
                 var movementDetection = AgentMap.Instance();
                 // do a marshal read from this byte offset if it doesnt return proper value.
                 var result = movementDetection->IsPlayerMoving;
@@ -451,7 +451,7 @@ public partial class AchievementManager
         #endregion GENERIC MODULE
 
         #region SECRETS MODULE
-        SaveData.AddProgress(AchievementModuleKind.Secrets, Achievements.HiddenInPlainSight, 5, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Found", suffix: "Easter Eggs", isSecret: true);
+        SaveData.AddProgress(AchievementModuleKind.Secrets, Achievements.HiddenInPlainSight, 6, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Found", suffix: "Easter Eggs", isSecret: true);
 
         SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.Experimentalist, () =>
         {

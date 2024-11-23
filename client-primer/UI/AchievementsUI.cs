@@ -21,14 +21,14 @@ namespace GagSpeak.UI;
 public class AchievementsUI : WindowMediatorSubscriberBase
 {
     private readonly AchievementManager _achievementManager;
-    private readonly AchievementTabsMenu _tabMenu;
+    private readonly AchievementTabs _tabMenu;
     private readonly CosmeticService _cosmeticTextures;
     private readonly UiSharedService _uiShared;
     // for theme management
     public bool ThemePushed = false;
 
     public AchievementsUI(ILogger<AchievementsUI> logger, GagspeakMediator mediator,
-        AchievementManager achievementManager, AchievementTabsMenu tabMenu,
+        AchievementManager achievementManager, AchievementTabs tabMenu,
         CosmeticService cosmeticTextures, UiSharedService uiShared, IDalamudPluginInterface pi)
         : base(logger, mediator, "###GagSpeakAchievementsUI")
     {
@@ -94,31 +94,31 @@ public class AchievementsUI : WindowMediatorSubscriberBase
             // display content based on the tab selected
             switch (_tabMenu.TabSelection)
             {
-                case AchievementTabsMenu.SelectedTab.Generic:
+                case AchievementTabs.SelectedTab.Generic:
                     using (ImRaii.PushId("UnlocksComponentGeneric")) DrawAchievementList(AchievementModuleKind.Generic);
                     break;
-                case AchievementTabsMenu.SelectedTab.Orders:
+                case AchievementTabs.SelectedTab.Orders:
                     using (ImRaii.PushId("UnlocksComponentOrders")) DrawAchievementList(AchievementModuleKind.Orders);
                     break;
-                case AchievementTabsMenu.SelectedTab.Gags:
+                case AchievementTabs.SelectedTab.Gags:
                     using (ImRaii.PushId("UnlocksComponentGags")) DrawAchievementList(AchievementModuleKind.Gags);
                     break;
-                case AchievementTabsMenu.SelectedTab.Wardrobe:
+                case AchievementTabs.SelectedTab.Wardrobe:
                     using (ImRaii.PushId("UnlocksComponentWardrobe")) DrawAchievementList(AchievementModuleKind.Wardrobe);
                     break;
-                case AchievementTabsMenu.SelectedTab.Puppeteer:
+                case AchievementTabs.SelectedTab.Puppeteer:
                     using (ImRaii.PushId("UnlocksComponentPuppeteer")) DrawAchievementList(AchievementModuleKind.Puppeteer);
                     break;
-                case AchievementTabsMenu.SelectedTab.Toybox:
+                case AchievementTabs.SelectedTab.Toybox:
                     using (ImRaii.PushId("UnlocksComponentToybox")) DrawAchievementList(AchievementModuleKind.Toybox);
                     break;
-                case AchievementTabsMenu.SelectedTab.Hardcore:
+                case AchievementTabs.SelectedTab.Hardcore:
                     using (ImRaii.PushId("UnlocksComponentHardcore")) DrawAchievementList(AchievementModuleKind.Hardcore);
                     break;
-                case AchievementTabsMenu.SelectedTab.Remotes:
+                case AchievementTabs.SelectedTab.Remotes:
                     using (ImRaii.PushId("UnlocksComponentRemotes")) DrawAchievementList(AchievementModuleKind.Remotes);
                     break;
-                case AchievementTabsMenu.SelectedTab.Secrets:
+                case AchievementTabs.SelectedTab.Secrets:
                     using (ImRaii.PushId("UnlocksComponentSecrets")) DrawAchievementList(AchievementModuleKind.Secrets);
                     break;
             }

@@ -279,13 +279,13 @@ public static class GagSpeakServiceExtensions
 
         // UI Helpers
         .AddSingleton<SetPreviewComponent>()
-        .AddSingleton<MainTabMenu>()
-        .AddSingleton<AchievementTabsMenu>()
+        .AddSingleton<MainMenuTabs>()
+        .AddSingleton<AchievementTabs>()
         .AddSingleton((s) => new AccountsTab(s.GetRequiredService<ILogger<AccountsTab>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ClientMonitorService>(),
             s.GetRequiredService<UiSharedService>(), pi.ConfigDirectory.FullName))
         .AddSingleton<DebugTab>()
-        .AddSingleton<AccountInfoExchanger>()
+        .AddSingleton((s) => new AccountInfoExchanger(pi.ConfigDirectory.FullName))
 
         // UI Simulation Services
         .AddSingleton<StruggleStamina>()
@@ -367,7 +367,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new UiFontService(pi))
         .AddSingleton<GagspeakMediator>()
         .AddSingleton((s) => new DiscoverService(pi.ConfigDirectory.FullName, s.GetRequiredService<ILogger<DiscoverService>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<PairManager>()))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainMenuTabs>(), s.GetRequiredService<PairManager>()))
         .AddSingleton<PatternHubService>()
         .AddSingleton<PermissionPresetService>()
         .AddSingleton((s) => new KinkPlateService(s.GetRequiredService<ILogger<KinkPlateService>>(),
@@ -426,8 +426,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ServerTagConfigService(pi.ConfigDirectory.FullName))
 
         // Configuration Migrators
-        .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>(),
-            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>(),
             s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigratePatterns(s.GetRequiredService<ILogger<MigratePatterns>>(),
@@ -447,14 +445,14 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()
         .AddScoped<WindowMediatorSubscriberBase, KinkPlatePreviewUI>()
         .AddScoped<WindowMediatorSubscriberBase, AchievementsUI>((s) => new AchievementsUI(s.GetRequiredService<ILogger<AchievementsUI>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<AchievementManager>(), s.GetRequiredService<AchievementTabsMenu>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<UiSharedService>(), pi))
+            s.GetRequiredService<AchievementManager>(), s.GetRequiredService<AchievementTabs>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<UiSharedService>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, MainWindowUI>((s) => new MainWindowUI(s.GetRequiredService<ILogger<MainWindowUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<MainHub>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
             s.GetRequiredService<MainUiPatternHub>(), s.GetRequiredService<MainUiChat>(), s.GetRequiredService<MainUiAccount>(),
-            s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<TutorialService>(), pi))
+            s.GetRequiredService<MainMenuTabs>(), s.GetRequiredService<TutorialService>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutKinkPlateUi>()
         .AddScoped<WindowMediatorSubscriberBase, InteractionEventsUI>()
         .AddScoped<WindowMediatorSubscriberBase, DtrVisibleWindow>()
@@ -482,7 +480,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<VisiblePairManager>()
         .AddScoped((s) => new TextureService(pi.UiBuilder, dm, tp))
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
-            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(), s.GetRequiredService<MainTabMenu>(),
+            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(), s.GetRequiredService<MainMenuTabs>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<PenumbraChangedItemTooltip>()))
         .AddScoped((s) => new CommandManager(s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<DeathRollService>(), cg, cs, cm))

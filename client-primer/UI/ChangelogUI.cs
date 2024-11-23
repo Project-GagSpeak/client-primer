@@ -56,7 +56,7 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
             var regionSize = ImGui.GetContentRegionAvail();
             ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
 
-            using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
+            using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar))
             {
                 if(ImGui.Button("Close Changelog", new Vector2(ImGui.GetContentRegionAvail().X, 25f)))
                 {

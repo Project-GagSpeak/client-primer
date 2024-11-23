@@ -2,7 +2,6 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
@@ -10,10 +9,8 @@ using GagspeakAPI.Data.Permissions;
 using ImGuiNET;
 using Lumina.Excel.Sheets;
 using OtterGui;
-using OtterGui.Raii;
 using OtterGui.Text;
 using System.Numerics;
-using System.Security.AccessControl;
 namespace GagSpeak.Services;
 
 // helps out with locating and parsing moodles icons and drawing custom dropdowns.
@@ -47,7 +44,7 @@ public class MoodlesService
 
 
     // Helper function to handle the combo box logic
-    private void DrawCombo(string comboLabel, float width, List<(Guid, List<Guid>)> MoodlesPresets, 
+    private void DrawCombo(string comboLabel, float width, List<(Guid, List<Guid>)> MoodlesPresets,
         List<MoodlesStatusInfo> RelatedStatuses, Action<Guid?>? onSelected = null, Guid initialSelectedItem = default)
     {
         if (!MoodlesPresets.Any())
@@ -109,7 +106,7 @@ public class MoodlesService
         // Check if the item was right-clicked. If so, reset to default value.
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            _logger.LogTrace("Right-clicked on "+comboLabel+". Resetting to default value.", LoggerType.IpcMoodles);
+            _logger.LogTrace("Right-clicked on " + comboLabel + ". Resetting to default value.", LoggerType.IpcMoodles);
             selectedItem = MoodlesPresets.First().Item1;
             SelectedMoodleComboGuids[comboLabel] = selectedItem!;
             onSelected?.Invoke(selectedItem!);
@@ -133,7 +130,7 @@ public class MoodlesService
         string buttonTT = "")
     {
         var comboWidth = width - ImGuiHelpers.GetButtonSize(buttonLabel).X - ImGui.GetStyle().ItemInnerSpacing.X;
-        
+
         DrawCombo(comboLabel, comboWidth, MoodlesPresets, RelatedMoodlesStatuses, onSelected);
 
         ImUtf8.SameLineInner();
@@ -146,7 +143,7 @@ public class MoodlesService
     }
 
     #region MoodlesStatusCombo
-    public void DrawMoodleStatusCombo(string comboLabel, float width, List<MoodlesStatusInfo> statusList, 
+    public void DrawMoodleStatusCombo(string comboLabel, float width, List<MoodlesStatusInfo> statusList,
         Action<Guid?>? onSelected = null, float sizeScaler = 1f, Guid initialSelectedItem = default)
     {
         DrawStatusComboBox(statusList, comboLabel, width, onSelected, sizeScaler, initialSelectedItem);
@@ -180,7 +177,7 @@ public class MoodlesService
     }
 
 
-    private void DrawStatusComboBox(List<MoodlesStatusInfo> statuses, string comboLabel, float width, 
+    private void DrawStatusComboBox(List<MoodlesStatusInfo> statuses, string comboLabel, float width,
         Action<Guid?>? onSelected = null, float sizeScaler = 1f, Guid initialSelectedItem = default)
     {
         var height = ImGui.GetTextLineHeightWithSpacing() * 10 - ImGui.GetFrameHeight() - ImGui.GetStyle().WindowPadding.Y;
@@ -219,8 +216,8 @@ public class MoodlesService
 
         var statusSelected = statuses.FirstOrDefault(x => x.GUID == selectedItem).Title;
         string selectedLabel = "None Selected";
-        if(!statusSelected.IsNullOrEmpty())
-            selectedLabel = statusSelected.StripColorTags();            
+        if (!statusSelected.IsNullOrEmpty())
+            selectedLabel = statusSelected.StripColorTags();
 
         ImGui.SetNextItemWidth(width);
         if (ImGui.BeginCombo(comboLabel, selectedLabel))
@@ -265,8 +262,8 @@ public class MoodlesService
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
 
-                    // Draw out the image.
-                    if (item.IconID != 0)
+                    // Draw out the image. (Ensure > 200,000 to account for 7.1 Icon Shifts. A Temp Fix until Moodles Updates)
+                    if (item.IconID != 0 && item.IconID > 200000)
                     {
                         var statusIcon = _textures.GetFromGameIcon(new GameIconLookup((uint)((uint)item.IconID + item.Stacks - 1))).GetWrapOrEmpty();
                         if (statusIcon is { } wrap)

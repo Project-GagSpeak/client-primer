@@ -15,13 +15,13 @@ namespace GagSpeak.Services;
 // handles the global chat and pattern discovery social features.
 public class DiscoverService : DisposableMediatorSubscriberBase
 {
-    private readonly MainTabMenu _tabMenu;
+    private readonly MainMenuTabs _tabMenu;
     private readonly PairManager _pairManager;
     private readonly string _configDirectory;
     private const string _chatlogFile = "global-chat-recent.log";
     private string ChatLogFilePath => Path.Combine(_configDirectory, _chatlogFile);
     public DiscoverService(string configDirectory, ILogger<DiscoverService> logger, 
-        GagspeakMediator mediator, MainTabMenu tabMenu, PairManager pairManager) : base(logger, mediator)
+        GagspeakMediator mediator, MainMenuTabs tabMenu, PairManager pairManager) : base(logger, mediator)
     {
         _configDirectory = configDirectory;
         _tabMenu = tabMenu;
@@ -36,7 +36,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
         Mediator.Subscribe<MainWindowTabChangeMessage>(this, (msg) => 
         {
-            if (msg.NewTab is MainTabMenu.SelectedTab.GlobalChat)
+            if (msg.NewTab is MainMenuTabs.SelectedTab.GlobalChat)
             {
                 GlobalChat.ShouldScrollToBottom = true;
                 NewMessages = 0;
@@ -62,7 +62,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
     private void AddChatMessage(GlobalChatMessage msg)
     {
-        if (_tabMenu.TabSelection is not MainTabMenu.SelectedTab.GlobalChat)
+        if (_tabMenu.TabSelection is not MainMenuTabs.SelectedTab.GlobalChat)
             NewMessages++;
 
         string SenderName = "Kinkster-" + msg.ChatMessage.MessageSender.UID.Substring(msg.ChatMessage.MessageSender.UID.Length - 3);

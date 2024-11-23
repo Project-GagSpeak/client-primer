@@ -185,8 +185,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             };
             var errorText = MainHub.ServerStatus switch
             {
-                ServerState.NoSecretKey => "No secret key is set for this current character. To create UID's for your " +
-                "alt characters, be sure to claim your account in the CK discord.",
+                ServerState.NoSecretKey => "No secret key is set for this current character. " +
+                "\nTo create UID's for your alt characters, be sure to claim your account in the CK discord." +
+                "\n\nOnce you have inserted a secret key, reload the plugin to be registered with the servers.",
                 ServerState.VersionMisMatch => "Current Ver: " + MainHub.ClientVerString + Environment.NewLine
                 + "Expected Ver: " + MainHub.ExpectedVerString +
                 "\n\nThis Means that your client is outdated, and you need to update it." +
@@ -482,7 +483,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             ServerState.Offline => "The GagSpeak server is currently offline.",
             ServerState.VersionMisMatch => "Your plugin is out of date. Please update your plugin to fix.",
             ServerState.Connected => string.Empty,
-            ServerState.NoSecretKey => "No secret key is set for this current character. To create UID's for your alt characters, be sure to claim your account in the CK discord.",
+            ServerState.NoSecretKey => "No secret key is set for this current character. " +
+            "\nTo create UID's for your alt characters, be sure to claim your account in the CK discord." +
+            "\n\nOnce you have inserted a secret key, reload the plugin to be registered with the servers.",
             _ => string.Empty
         };
     }

@@ -3,6 +3,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using System.Linq;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -90,7 +91,7 @@ public class ServerConfigurationManager
         }
     }
 
-    public bool HasAnyAltAuths() => CurrentServer.Authentications.Any(a => !a.IsPrimary && !string.IsNullOrEmpty(a.SecretKey.Key));
+    public bool HasAnyAltAuths() => CurrentServer.Authentications.Any(a => !a.IsPrimary);
 
     public bool CharacterHasSecretKey()
     {
@@ -102,15 +103,16 @@ public class ServerConfigurationManager
         return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == _clientService.ContentId);
     }
 
-    public void GenerateAuthForCurrentCharacter(bool isPrimary = false)
+    public void GenerateAuthForCurrentCharacter()
     {
+        _logger.LogDebug("Character has no secret key, generating new auth for current character");
         // generates a new auth object for the list of authentications with no secret key.
         var auth = new Authentication
         {
             CharacterPlayerContentId = _clientService.ContentIdAsync().GetAwaiter().GetResult(),
             CharacterName = _clientService.NameAsync().GetAwaiter().GetResult(),
             WorldId = _clientService.HomeWorldIdAsync().GetAwaiter().GetResult(),
-            IsPrimary = isPrimary,
+            IsPrimary = !CurrentServer.Authentications.Any(),
             SecretKey = new SecretKey()
         };
 

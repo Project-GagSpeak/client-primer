@@ -135,19 +135,20 @@ public class IntroUi : WindowMediatorSubscriberBase
                 // display the create account button.
                 if (ImGui.Button(buttonText))
                 {
-                    _serverConfigs.GenerateAuthForCurrentCharacter(true);
-                    // grab our local content id
-                    var contentId = _clientService.ContentId;
-
+                    _logger.LogInformation("Recreating Authentication for current character.");
+                    if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
+                    {
+                        _logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
+                        _serverConfigs.GenerateAuthForCurrentCharacter();
+                    }
                     // set the key to that newly added authentication
                     SecretKey newKey = new()
                     {
                         Label = $"GagSpeak Main Account Secret Key - ({DateTime.Now:yyyy-MM-dd})",
                         Key = _secretKey,
                     };
-
                     // set the secret key for the character
-                    _serverConfigs.SetSecretKeyForCharacter(contentId, newKey);
+                    _serverConfigs.SetSecretKeyForCharacter(_clientService.ContentId, newKey);
 
                     // run the create connections and set our account created to true
                     _ = Task.Run(() => _apiHubMain.Connect());

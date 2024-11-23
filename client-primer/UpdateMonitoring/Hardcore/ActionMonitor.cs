@@ -1,8 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Interop;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -264,7 +262,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
                     var adjustedId = ActionManager.Instance()->GetAdjustedActionId(slot->CommandId);
                     // get the cooldown group
                     var cooldownGroup = -1;
-                    if(_clientService.TryGetAction(adjustedId, out Lumina.Excel.Sheets.Action action))
+                    if (_clientService.TryGetAction(adjustedId, out Lumina.Excel.Sheets.Action action))
                     {
                         // there is a minus one offset for actions, while general actions do not have them.
                         cooldownGroup = action.CooldownGroup - 1;

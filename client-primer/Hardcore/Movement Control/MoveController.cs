@@ -15,11 +15,15 @@ public class MoveController : IDisposable
     public bool AllMovementIsDisabled => ForceDisableMovement > 0;
 
     #region Pointer Signature Fuckery
+    // Ref:
+    // https://github.com/PunishXIV/Orbwalker/blob/4d171bc7c79a492bf9159d705dafa7bc97f0c174/Orbwalker/Memory.cs#L74
     // controls the complete blockage of movement from the player (Blocks /follow movement)
     [Signature("F3 0F 10 05 ?? ?? ?? ?? 0F 2E C7", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Infallible)]
     private readonly nint forceDisableMovementPtr;
     internal unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
 
+    // Ref:
+    // https://github.com/Drahsid/HybridCamera/blob/2e18760d64be14d2dc16405168d5a7a8f236ff3c/HybridCamera/MovementHook.cs#L216
     // prevents LMB+RMB moving by processing it prior to the games update movement check.
     public unsafe delegate void MoveOnMousePreventor2Delegate(MoveControllerSubMemberForMine* thisx, float wishdir_h, float wishdir_v, char arg4, byte align_with_camera, Vector3* direction);
     [Signature("48 8b c4 48 89 70 ?? 48 89 78 ?? 55 41 56 41 57", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]

@@ -46,7 +46,14 @@ public class ClientMonitorService : IHostedService
         _logger.LogInformation("Obtained Sheets for " + ClassJobs.Count + " ClassJobs");
 
         _clientState.ClassJobChanged += OnJobChanged;
+        _clientState.Login += OnLogin;
         _clientState.Logout += OnLogout;
+
+        // if the client is already logged in, we need to trigger the login event manually
+        if (_clientState.IsLoggedIn)
+        {
+            OnLogin();
+        }
     }
 
     public List<ClassJob> ClassJobs { get; private set; } = new List<ClassJob>();
@@ -161,6 +168,13 @@ public class ClientMonitorService : IHostedService
     {
         if (!_clientState.IsLoggedIn) return;
         _mediator.Publish(new JobChangeMessage(jobId));
+    }
+
+    private void OnLogin()
+    {
+        _logger.LogInformation("Logged in");
+        unsafe { OnFrameworkService.LastCommendationsCount = PlayerState.Instance()->PlayerCommendations; }
+        _mediator.Publish(new DalamudLoginMessage());
     }
 
     private void OnLogout(int type, int code)

@@ -25,13 +25,12 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
 
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now;
     private ushort _lastZone = 0;
-    private bool _hasLoggedIn = false;
     private bool _sentBetweenAreas = false;
     private bool IsInGpose = false;
     private bool IsInCutscene = false;
 
     public bool Zoning => _clientService.IsZoning;
-    public short LastCommendationsCount { get; private set; } = 0;
+    public static short LastCommendationsCount = 0;
     public static bool GlamourChangeEventsDisabled = false; // prevents glamourer hell
     public static Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
@@ -338,19 +337,6 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
         // check if we are at 1 hp, if so, grant the boundgee jumping achievement.
         if (localPlayer.CurrentHp is 1)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.ClientOneHp);
-
-        // if it is not null (they exist) and isLoggedIn is not true
-        if (_clientService.IsPresent && !_hasLoggedIn)
-        {
-            // they have logged in, so set IsLoggedIn to true, and publish the DalamudLoginMessage
-            Logger.LogDebug("Logged in");
-            _hasLoggedIn = true;
-            _lastZone = _clientService.TerritoryId;
-            /*ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();*/
-            /*PlayerClassJobId = _clientState.LocalPlayer?.ClassJob.RowId ?? 0;*/
-            LastCommendationsCount = PlayerState.Instance()->PlayerCommendations;
-            Mediator.Publish(new DalamudLoginMessage());
-        }
 
         // push the delayed framework update message to the mediator for things like the UI and the online player manager
         Mediator.Publish(new DelayedFrameworkUpdateMessage());

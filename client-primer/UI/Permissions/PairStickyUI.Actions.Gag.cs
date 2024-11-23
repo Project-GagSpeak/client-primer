@@ -37,7 +37,7 @@ public partial class PairStickyUI
         bool disableApplying = !disableUnlocking || !PairPerms.GagFeatures;
 
         ////////// APPLY GAG //////////
-        string DisplayGagText = disableApplying ? "A " + gagSlot.GagType + " is applied." : "Apply a Gag to " + PairNickOrAliasOrUID;
+        string DisplayGagText = !disableLocking ? "A " + gagSlot.GagType + " is applied." : "Apply a Gag to " + PairNickOrAliasOrUID;
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, DisplayGagText, WindowMenuWidth, true, disableApplying))
         {
             Opened = Opened == InteractionType.ApplyGag ? InteractionType.None : InteractionType.ApplyGag;

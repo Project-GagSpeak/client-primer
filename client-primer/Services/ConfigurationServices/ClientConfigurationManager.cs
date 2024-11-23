@@ -69,7 +69,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             }
             // update our configs to point to the new user.
             if (MainHub.UID != _configService.Current.LastUidLoggedIn)
+            {
                 UpdateConfigs(MainHub.UID);
+            }
             // update the last logged in UID
             _configService.Current.LastUidLoggedIn = MainHub.ConnectionDto.User.UID;
             Save();

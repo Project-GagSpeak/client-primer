@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 13)
+            .RegisterMain("Fixed broken signatures (hopefully all of them now)")
+            .RegisterFeature("Fixed some remaining bugs and issues with achievements inproperly tracking.");
         VersionEntry(0, 9, 9, 12)
             .RegisterMain("Addedd all internal tutorial modules to the plugin.")
             .RegisterBugfix("Fixed about 50+ bugs i lost count");

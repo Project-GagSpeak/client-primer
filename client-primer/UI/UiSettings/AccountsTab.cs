@@ -27,7 +27,7 @@ public class AccountsTab
 
     private string ConfigDirectory { get; init; } = string.Empty;
     private bool DeleteAccountConfirmation = false;
-    private bool ShowKeyLabel = true;
+    private int ShowKeyIdx = -1;
     private int EditingIdx = -1;
     public AccountsTab(ILogger<AccountsTab> logger, GagspeakMediator mediator, MainHub apiHubMain,
         ClientConfigurationManager clientConfigs, ServerConfigurationManager serverConfigs,
@@ -64,12 +64,15 @@ public class AccountsTab
         _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.SecondaryLabel);
         if (_serverConfigs.HasAnyAltAuths())
         {
-            // fetch the list of additional authentications that are not the primary account.
-            var secondaryAuths = _serverConfigs.CurrentServer.Authentications.Where(c => !c.IsPrimary).ToList();
+            // order the list of alts by prioritizing ones with successful connections first.
+            var secondaryAuths = _serverConfigs.CurrentServer.Authentications
+                .Where(c => !c.IsPrimary)
+                .OrderByDescending(c => c.SecretKey.HasHadSuccessfulConnection)
+                .ToList();
+
             for (int i = 0; i < secondaryAuths.Count; i++)
-            {
                 DrawAccount(i, secondaryAuths[i], secondaryAuths[i].CharacterPlayerContentId == localContentId);
-            }
+
             return;
         }
         // display this if we have no alts.
@@ -101,14 +104,12 @@ public class AccountsTab
             UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaNameLabel);
 
             // head over to the end to make the delete button.
-            var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
-
             var cannotDelete = (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser));
             ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, GSLoc.Settings.Accounts.DeleteButtonLabel));
 
             var hadEstablishedConnection = account.SecretKey.HasHadSuccessfulConnection;
 
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: false/*!hadEstablishedConnection || cannotDelete*/, id: "DeleteAccount" + account.CharacterPlayerContentId))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: !hadEstablishedConnection || cannotDelete, id: "DeleteAccount" + account.CharacterPlayerContentId))
             {
                 DeleteAccountConfirmation = true;
                 ImGui.OpenPopup("Delete your account?");
@@ -128,12 +129,12 @@ public class AccountsTab
             UiSharedService.ColorText(OnFrameworkService.WorldData.Value[(ushort)account.WorldId], isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
             UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaWorldLabel);
 
-            var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
+            var isOnUserSize = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
             var successfulConnection = _uiShared.GetIconData(FontAwesomeIcon.PlugCircleCheck);
-            float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isPrimaryIcon.X - 2 * ImGui.GetStyle().ItemInnerSpacing.X;
+            float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isOnUserSize.X - 2 * ImGui.GetStyle().ItemInnerSpacing.X;
             ImGui.SameLine(rightEnd);
 
-            _uiShared.BooleanToColoredIcon(account.IsPrimary, false, FontAwesomeIcon.Fingerprint, FontAwesomeIcon.Fingerprint, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
+            _uiShared.BooleanToColoredIcon(isOnlineUser, false, FontAwesomeIcon.Fingerprint, FontAwesomeIcon.Fingerprint, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
             UiSharedService.AttachToolTip(account.IsPrimary ? GSLoc.Settings.Accounts.FingerprintPrimary : GSLoc.Settings.Accounts.FingerprintSecondary);
             _uiShared.BooleanToColoredIcon(account.SecretKey.HasHadSuccessfulConnection, true, FontAwesomeIcon.PlugCircleCheck, FontAwesomeIcon.PlugCircleXmark, ImGuiColors.ParsedGreen, ImGuiColors.DalamudGrey3);
             UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection ? GSLoc.Settings.Accounts.SuccessfulConnection : GSLoc.Settings.Accounts.NoSuccessfulConnection);
@@ -142,12 +143,12 @@ public class AccountsTab
         // next line:
         using (var group3 = ImRaii.Group())
         {
-            string keyDisplayText = ShowKeyLabel ? account.SecretKey.Label : account.SecretKey.Key;
+            string keyDisplayText = (ShowKeyIdx == idx) ? account.SecretKey.Key : account.SecretKey.Label;
             ImGui.AlignTextToFramePadding();
             _uiShared.IconText(FontAwesomeIcon.Key);
             if (ImGui.IsItemClicked())
             {
-                ShowKeyLabel = !ShowKeyLabel;
+                ShowKeyIdx = (ShowKeyIdx == idx) ? -1 : idx;
             }
             UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaKeyLabel);
             // we shoul draw an inputtext field here if we can edit it, and a text field if we cant.
@@ -226,54 +227,46 @@ public class AccountsTab
         // remove the current authentication.
         try
         {
-            _logger.LogInformation("Deleting Account from Server.");
-            await _apiHubMain.UserDelete(!isPrimary);
-
             // remove all patterns belonging to this account.
             _logger.LogInformation("Removing Patterns for current character.");
             _clientConfigs.RemoveAllPatternsFromUID(uid);
 
             _logger.LogInformation("Removing Authentication for current character.");
             _serverConfigs.CurrentServer.Authentications.Remove(account);
+            if (isPrimary)
+            {
+                _serverConfigs.CurrentServer.Authentications.Clear();
+                _clientConfigs.GagspeakConfig.AcknowledgementUnderstood = false;
+                _clientConfigs.GagspeakConfig.AccountCreated = false;
+            }
+            _clientConfigs.GagspeakConfig.LastUidLoggedIn = "";
+            _clientConfigs.UpdateConfigs(string.Empty);
+            _clientConfigs.Save();
 
-            // recreate a new authentication for this user.
+            _logger.LogInformation("Deleting Account from Server.");
+            await _apiHubMain.UserDelete();           
+            DeleteAccountConfirmation = false;
+
             if (!isPrimary)
             {
-                _logger.LogInformation("Recreating Authentication for current character.");
-                if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
-                {
-                    _logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
-                    _serverConfigs.GenerateAuthForCurrentCharacter();
-                }
-                // identify the location of the account profile folder.
                 var accountProfileFolder = Path.Combine(ConfigDirectory, uid);
-                // delete the account profile folder.
                 if (Directory.Exists(accountProfileFolder))
                 {
                     _logger.LogDebug("Deleting Account Profile Folder for current character.", LoggerType.ApiCore);
                     Directory.Delete(accountProfileFolder, true);
                 }
+                await _apiHubMain.Reconnect(false);
             }
             else
             {
-                // we should remove all other authentications from our server storage authentications and reconnect.
-                _serverConfigs.CurrentServer.Authentications.Clear();
-                _clientConfigs.GagspeakConfig.AcknowledgementUnderstood = false;
-                _clientConfigs.GagspeakConfig.AccountCreated = false;
-                _clientConfigs.GagspeakConfig.LastUidLoggedIn = "";
-                // fetch the collection of all folders that contain UID names. This is every folder except the ones named "eventlog" and "audiofiles".
                 var allFolders = Directory.GetDirectories(ConfigDirectory).Where(c => !c.Contains("eventlog") && !c.Contains("audiofiles")).ToList();
-                // delete all the folders.
-                foreach (var folder in allFolders)
-                {
+                foreach (var folder in allFolders) 
                     Directory.Delete(folder, true);
-                }
+                
                 _logger.LogInformation("Removed all deleted account folders.");
+                await _apiHubMain.Disconnect(ServerState.Disconnected, false);
                 _mediator.Publish(new SwitchToIntroUiMessage());
             }
-            DeleteAccountConfirmation = false;
-            _serverConfigs.Save();
-            _clientConfigs.Save();
         }
         catch (Exception ex)
         {

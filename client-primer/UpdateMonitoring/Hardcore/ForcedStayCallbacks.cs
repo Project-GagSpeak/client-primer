@@ -15,6 +15,9 @@ public unsafe class ForcedStayCallback : IDisposable
     private readonly ILogger<ForcedStayCallback> _logger;
     private readonly ClientConfigurationManager _clientConfigs;
 
+    // Ref:
+    // https://github.com/Caraxi/SimpleTweaksPlugin/blob/02abb1c3e4a140cbccded03af1e0637c3c5665ff/Debugging/AddonDebug.cs#L127
+    // Detours the fired callback to get the values from it. Useful for documenting new cases from addon interactions.
     private unsafe delegate void* FireCallbackDelegate(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues, byte updateVisibility);
     [Signature("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20", DetourName = nameof(FireCallbackDetour), Fallibility = Fallibility.Auto)]
     private static Hook<FireCallbackDelegate> FireCallbackHook { get; set; } = null;
@@ -58,6 +61,8 @@ public unsafe class ForcedStayCallback : IDisposable
         return FireCallbackHook.Original(atkUnitBase, valueCount, atkValues, updateVisibility);
     }
 
+    // Ref:
+    // https://github.com/NightmareXIV/ECommons/blob/6ea40a9eea2e805f2f566fe0493749c7c0639ea3/ECommons/Automation/Callback.cs#L64
     private static class Signatures
     {
         public const string CallbackSignature = "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 0F B7 81";

@@ -333,9 +333,15 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     {
         fetchedSecretKey = string.Empty;
 
+        // ensure we have a proper template for the active character.
+        if (_serverConfigs.CharacterHasSecretKey() is false)
+            if (_serverConfigs.AuthExistsForCurrentLocalContentId() is false)
+                _serverConfigs.GenerateAuthForCurrentCharacter();
+
+        // if we are not logged in, we should not be able to connect.
         if (!_clientService.IsLoggedIn)
         {
-            Logger.LogWarning("Attempted to connect while not logged in, this shouldnt be possible! Aborting!", LoggerType.ApiCore);
+            Logger.LogDebug("Attempted to connect while not logged in, this shouldnt be possible! Aborting!", LoggerType.ApiCore);
             return false;
         }
 
@@ -513,16 +519,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
 
     protected override async void OnLogin()
     {
-        // If the client logs in and their Character has no secret key for their LocalContentId Auth
-        if (!_serverConfigs.CharacterHasSecretKey())
-        {
-            // See if they even have an entry for this LocalContentId's Auth.
-            if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
-            {
-                Logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
-                _serverConfigs.GenerateAuthForCurrentCharacter();
-            }
-        }
+        Logger.LogInformation("Starting connection on login");
         // Run the call to attempt a connection to the server.
         await Connect().ConfigureAwait(false);
     }

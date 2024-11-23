@@ -67,7 +67,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         // if this config should be using a perplayer file save, but the uid is null, return and do not load.
         if (PerCharacterConfigPath && string.IsNullOrEmpty(_currentUid))
         {
-            //_logger.LogWarning($"UID is null for {ConfigurationName} configuration. Not loading.");
+            //StaticLogger.Logger.LogWarning($"UID is null for {ConfigurationName} configuration. Not loading.");
             // return early so we do not save this config to the files
             return (T)Activator.CreateInstance(typeof(T))!;
         }
@@ -120,6 +120,14 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     protected virtual void SaveDirtyConfig()
     {
         _configIsDirty = false;
+
+        // Check if the UID is null and if the configuration should use a per-player file save
+        if (PerCharacterConfigPath && string.IsNullOrEmpty(_currentUid))
+        {
+            //StaticLogger.Logger.LogWarning($"UID is null for {ConfigurationName} configuration. Not saving.");
+            return; // Exit early to prevent saving
+        }
+
         var existingConfigs = PerCharacterConfigPath && !string.IsNullOrEmpty(_currentUid)
                             ? Directory.EnumerateFiles(Path.Combine(ConfigurationDirectory, _currentUid), ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
                             : Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
@@ -148,6 +156,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         {
             throw new Exception($"Failed to serialize {ConfigurationName} configuration. {ex.StackTrace}");
         }
+        //StaticLogger.Logger.LogInformation($"Saving {ConfigurationName} configuration to {ConfigurationPath}");
         File.WriteAllText(temp, json);
         File.Move(temp, ConfigurationPath, true);
         _configLastWriteTime = new FileInfo(ConfigurationPath).LastWriteTimeUtc;
@@ -195,8 +204,12 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     // New method to update the UID
     public void UpdateUid(string newUid)
     {
-        _currentUid = newUid;
-        SaveUid(newUid); // Save the UID to persistent storage
+        //StaticLogger.Logger.LogInformation($"Updating UID to {newUid}");
+        if (_currentUid != newUid)
+        {
+            _currentUid = newUid;
+            SaveUid(newUid);
+        }
         _currentConfigInternal = LazyConfig(); // Recalculate the configuration path
         Save();
     }
@@ -233,8 +246,9 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         // read the contents of the file
         string json = File.ReadAllText(uidFilePath);
         var configJson = JObject.Parse(json);
+        var uid = configJson["LastUidLoggedIn"]?.Value<string>() ?? string.Empty;
         // extract the LastUidLoggedIn property
-        return configJson["LastUidLoggedIn"]?.Value<string>();
+        return uid;
     }
 
     private void EnsureDirectoryExists()
@@ -242,6 +256,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         var directory = Path.GetDirectoryName(ConfigurationPath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
+            StaticLogger.Logger.LogInformation($"Creating directory: {directory}");
             Directory.CreateDirectory(directory);
         }
     }

@@ -53,22 +53,6 @@ public partial class MainHub
         await GagSpeakHubMain!.SendAsync(nameof(UserDelete)).ConfigureAwait(false);
     }
 
-
-    public async Task UserDelete(bool reconnectAfter = true)
-    {
-        // verify that we are connected
-        await UserDelete();
-        // perform a reconnect, because the account is no longer valid in the context of the current connection.
-        if (reconnectAfter)
-        {
-            await Reconnect(false).ConfigureAwait(false);
-        }
-        else
-        {
-            await Disconnect(ServerState.Disconnected, false).ConfigureAwait(false);
-        }
-    }
-
     /// <summary> 
     /// Send a request to the server, asking it to return a list of all currently online users that you are paired with.
     /// </summary>

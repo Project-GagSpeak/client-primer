@@ -5,13 +5,14 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
+using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services;
 
 /// <summary>
 /// Service responsible for displaying any sent notifications out to the user.
 /// </summary>
-public class NotificationService : DisposableMediatorSubscriberBase
+public class NotificationService : DisposableMediatorSubscriberBase, IHostedService
 {
     private readonly GagspeakConfigService _mainConfig;
     private readonly PlayerCharacterData _playerData;
@@ -56,14 +57,14 @@ public class NotificationService : DisposableMediatorSubscriberBase
         _chat.Print(se.BuiltString);
     }
 
-    public void PrintCustomChat(SeStringBuilder builtMessage)
+    public void PrintCustomChat(SeString builtMessage)
     {
-       _chat.Print(builtMessage.BuiltString);
+       _chat.Print(builtMessage);
     }
 
-    public void PrintCustomErrorChat(SeStringBuilder builtMessage)
+    public void PrintCustomErrorChat(SeString builtMessage)
     {
-        _chat.PrintError(builtMessage.BuiltString);
+        _chat.PrintError(builtMessage);
     }
 
     private void ShowChat(NotificationMessage msg)
@@ -157,5 +158,17 @@ public class NotificationService : DisposableMediatorSubscriberBase
             Minimized = false,
             InitialDuration = msg.TimeShownOnScreen ?? TimeSpan.FromSeconds(3)
         });
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        Logger.LogInformation("Notification Service is starting.");
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Logger.LogInformation("Notification Service is stopping.");
+        return Task.CompletedTask;
     }
 }

@@ -25,7 +25,7 @@ namespace GagSpeak.Services.Mediator;
 
 /* ------------------ MESSAGE RELATED RECORDS ------------------ */
 public record NotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
-public record NotifyChatMessage(SeStringBuilder Message, NotificationType Type) : MessageBase;
+public record NotifyChatMessage(SeString Message, NotificationType Type) : MessageBase;
 public record EventMessage(InteractionEvent Event) : MessageBase;
 
 public record MainHubDisconnectedMessage : SameThreadMessage;

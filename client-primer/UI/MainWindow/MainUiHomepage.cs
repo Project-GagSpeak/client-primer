@@ -10,7 +10,6 @@ using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
 using ImGuiNET;
 using System.Numerics;
-using System.Reflection.Metadata;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -61,7 +60,7 @@ public class MainUiHomepage
             var module = Modules[i];
             bool isHovered = HoveredItemIndex == i;
 
-            if(HomepageSelectable(module.Label, module.Icon, selectableSize, isHovered))
+            if (HomepageSelectable(module.Label, module.Icon, selectableSize, isHovered))
             {
                 _mediator.Publish(new UiToggleMessage(module.ToggleType));
                 if (module.ToggleType == typeof(RemotePersonal))
